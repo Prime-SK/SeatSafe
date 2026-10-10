@@ -1,4 +1,12 @@
-import { Body, Controller, Post, UseFilters, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Header,
+  HttpCode,
+  Post,
+  UseFilters,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiProperty,
   ApiResponse,
@@ -10,6 +18,29 @@ import { AuthService } from './auth.service.js';
 import type { RegisteredUser } from './auth.service.js';
 import { RegisterDto } from './register.dto.js';
 import { RegistrationFilter } from './registration.filter.js';
+import { LoginDto } from './login.dto.js';
+import { LoginService } from './login.service.js';
+import type { LoginResult } from './login.service.js';
+import { LoginFilter } from './login.filter.js';
+
+class LoginUserDto {
+  @ApiProperty({ format: 'uuid' }) id: string;
+  @ApiProperty({ example: 'Sample learner' }) displayName: string;
+  @ApiProperty({ example: 'learner@example.test', format: 'email' })
+  email: string;
+  @ApiProperty({ enum: ['USER', 'ADMIN'] }) role: 'USER' | 'ADMIN';
+}
+class LoginResultDto implements LoginResult {
+  @ApiProperty({
+    description:
+      'Signed HS256 JWT; contains sub, sid, iat and exp. Treat as a credential.',
+    example: '<signed-access-token>',
+  })
+  accessToken: string;
+  @ApiProperty({ enum: ['Bearer'] }) tokenType: 'Bearer';
+  @ApiProperty({ example: 900 }) expiresIn: number;
+  @ApiProperty({ type: LoginUserDto }) user: LoginUserDto;
+}
 
 class RegisteredUserDto implements RegisteredUser {
   @ApiProperty({ format: 'uuid' }) id: string;
@@ -32,10 +63,13 @@ const failures = [
 
 @ApiTags('Auth')
 @Controller('auth')
-@UseFilters(RegistrationFilter)
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly loginService: LoginService,
+  ) {}
   @Post('register')
+  @UseFilters(RegistrationFilter)
   @UseGuards(ThrottlerGuard)
   @ApiOperation({
     summary: 'Create an account',
@@ -79,6 +113,69 @@ export class AuthController {
   })
   register(@Body() input: RegisterDto): Promise<RegisteredUser> {
     return this.auth.register(input);
+  }
+  @Post('login')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @UseFilters(LoginFilter)
+  @UseGuards(ThrottlerGuard)
+  @ApiOperation({
+    summary: 'Sign in',
+    description:
+      'Normalizes email, verifies the unchanged password and creates an independent seven-day session. Returns a 15-minute access token. No refresh cookie yet. Limited to five attempts per minute per request IP, independently of registration.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: LoginResultDto,
+    headers: {
+      'Cache-Control': {
+        description: 'Do not cache the credential response.',
+        schema: { type: 'string', example: 'no-store' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    schema: {
+      ...errorSchema(400, 'VALIDATION_FAILED', 'Invalid login data'),
+      required: ['statusCode', 'code', 'message', 'fieldErrors'],
+      properties: {
+        ...errorSchema(400, 'VALIDATION_FAILED', 'Invalid login data')
+          .properties,
+        fieldErrors: {
+          type: 'object',
+          additionalProperties: { type: 'array', items: { type: 'string' } },
+          example: { email: ['email must be an email'] },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    schema: errorSchema(
+      401,
+      'INVALID_CREDENTIALS',
+      'Invalid email or password',
+    ),
+  })
+  @ApiResponse({
+    status: 429,
+    schema: errorSchema(
+      429,
+      'RATE_LIMITED',
+      'Too many login attempts. Please try again later.',
+    ),
+  })
+  @ApiResponse({
+    status: 503,
+    schema: errorSchema(503, 'DATABASE_UNAVAILABLE', 'Database unavailable'),
+  })
+  @ApiResponse({
+    status: 500,
+    schema: errorSchema(500, 'INTERNAL_ERROR', 'Unable to sign in'),
+  })
+  login(@Body() input: LoginDto): Promise<LoginResult> {
+    return this.loginService.login(input);
   }
 }
 

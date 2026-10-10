@@ -8,3 +8,4 @@ vi.stubEnv('DB_PORT', '5432');
 vi.stubEnv('DB_NAME', 'seatsafe_http_test');
 vi.stubEnv('DB_USER', 'seatsafe_http_test');
 vi.stubEnv('DB_PASSWORD', 'public-test-fixture');
+vi.stubEnv('JWT_SECRET', 'public-http-test-jwt-secret-32-bytes-minimum');

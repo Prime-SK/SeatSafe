@@ -9,10 +9,37 @@ import { WorkshopEntity } from '../src/workshops/workshop.entity.js';
 import { createWorkshopFixtures } from './workshop-fixtures.js';
 import { UserEntity } from '../src/users/user.entity.js';
 import { PasswordHasher } from '../src/auth/password-hasher.js';
+import { AuthSessionEntity } from '../src/auth/auth-session.entity.js';
 
 export async function createTestApp() {
-  const userRepository = { insert: vi.fn().mockResolvedValue({}) };
-  const passwordHasher = { hash: vi.fn().mockResolvedValue('test-only-hash') };
+  const loginQuery = {
+    addSelect: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    getOne: vi.fn().mockResolvedValue(null),
+  };
+  const lockedQuery = {
+    setLock: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    getOne: vi.fn().mockResolvedValue(null),
+  };
+  const sessionRepository = { insert: vi.fn().mockResolvedValue({}) };
+  const manager = {
+    getRepository: vi
+      .fn()
+      .mockImplementation((entity: unknown) =>
+        entity === AuthSessionEntity
+          ? sessionRepository
+          : { createQueryBuilder: () => lockedQuery },
+      ),
+  };
+  const userRepository = {
+    insert: vi.fn().mockResolvedValue({}),
+    createQueryBuilder: vi.fn().mockReturnValue(loginQuery),
+  };
+  const passwordHasher = {
+    hash: vi.fn().mockResolvedValue('test-only-hash'),
+    verify: vi.fn().mockResolvedValue(false),
+  };
   const records = createWorkshopFixtures();
   const workshopRepository = {
     find: vi.fn().mockResolvedValue(records),
@@ -28,6 +55,12 @@ export async function createTestApp() {
     manager: {},
     isInitialized: true,
     query: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
+    transaction: vi
+      .fn()
+      .mockImplementation(
+        async (work: (value: typeof manager) => Promise<unknown>) =>
+          work(manager),
+      ),
     destroy: vi.fn().mockResolvedValue(undefined),
   };
   database.destroy.mockImplementation(async () => {
@@ -46,5 +79,14 @@ export async function createTestApp() {
   const app: INestApplication<App> = moduleFixture.createNestApplication();
   configureApp(app);
   await app.init();
-  return { app, database, workshopRepository, userRepository, passwordHasher };
+  return {
+    app,
+    database,
+    workshopRepository,
+    userRepository,
+    passwordHasher,
+    loginQuery,
+    lockedQuery,
+    sessionRepository,
+  };
 }

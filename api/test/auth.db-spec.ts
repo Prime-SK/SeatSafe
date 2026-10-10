@@ -34,7 +34,12 @@ describe('Registration with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
-    await database.getRepository(UserEntity).clear();
+    await database.query(`DELETE FROM "${schema}".auth_sessions`);
+    await database
+      .getRepository(UserEntity)
+      .createQueryBuilder()
+      .delete()
+      .execute();
     const { AppModule } = await import('../dist/app.module.js');
     const { configureApp } = await import('../dist/app.setup.js');
     const module = await Test.createTestingModule({ imports: [AppModule] })
@@ -145,7 +150,7 @@ describe('Registration with real PostgreSQL', () => {
       );
       expect(
         table!.checks
-          .map((constraint) => constraint.name)
+          .map((constraint) => constraint.name ?? '')
           .sort((a, b) => a.localeCompare(b)),
       ).toEqual([
         'CHK_users_display_name_nonblank',
@@ -179,7 +184,7 @@ describe('Registration with real PostgreSQL', () => {
       await database.query(
         `SELECT name FROM "${schema}".migrations ORDER BY id`,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
   });
   for (const [name, email, role] of [
     ['   ', 'valid@example.test', 'USER'],
@@ -197,6 +202,8 @@ describe('Registration with real PostgreSQL', () => {
     });
   }
   it('reverses and reapplies only the users migration in its temporary schema', async () => {
+    // Remove the dependent session migration first; the original users check stays intact.
+    await database.undoLastMigration();
     await database.undoLastMigration();
     expect(
       (
@@ -212,6 +219,6 @@ describe('Registration with real PostgreSQL', () => {
         ])
       )[0].name,
     ).not.toBeNull();
-    expect(await database.runMigrations()).toHaveLength(1);
+    expect(await database.runMigrations()).toHaveLength(2);
   });
 });

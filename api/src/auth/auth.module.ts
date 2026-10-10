@@ -5,13 +5,26 @@ import { UserEntity } from '../users/user.entity.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { PasswordHasher } from './password-hasher.js';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { LoginService } from './login.service.js';
+import {
+  AccessTokenService,
+  validateJwtSecret,
+} from './access-token.service.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity]),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 5 }]),
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: validateJwtSecret(config.get<unknown>('JWT_SECRET')),
+      }),
+    }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PasswordHasher],
+  providers: [AuthService, PasswordHasher, LoginService, AccessTokenService],
 })
 export class AuthModule {}
