@@ -31,6 +31,7 @@ describe('Workshops API (e2e)', () => {
         reservedSeats: 17,
         registrationOpen: true,
         availableSeats: 3,
+        startsAt: '2026-11-01T10:00:00.000Z',
       },
       {
         id: 'workshop-2',
@@ -39,6 +40,7 @@ describe('Workshops API (e2e)', () => {
         reservedSeats: 2,
         registrationOpen: false,
         availableSeats: 8,
+        startsAt: '2026-11-02T10:00:00.000Z',
       },
       {
         id: 'workshop-3',
@@ -47,6 +49,7 @@ describe('Workshops API (e2e)', () => {
         reservedSeats: 12,
         registrationOpen: true,
         availableSeats: 0,
+        startsAt: '2026-11-03T10:00:00.000Z',
       },
     ]);
   });
@@ -64,6 +67,7 @@ describe('Workshops API (e2e)', () => {
       reservedSeats: 17,
       registrationOpen: true,
       availableSeats: 3,
+      startsAt: '2026-11-01T10:00:00.000Z',
     });
   });
 

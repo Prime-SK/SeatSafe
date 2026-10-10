@@ -5,6 +5,14 @@ import type { WorkshopResponse } from './workshop.types.js';
 export class WorkshopResponseDto implements WorkshopResponse {
   @ApiProperty({
     type: String,
+    format: 'date-time',
+    example: '2026-10-16T10:00:00.000Z',
+    description: 'Workshop start instant, serialized in UTC.',
+  })
+  readonly startsAt: string;
+
+  @ApiProperty({
+    type: String,
     example: 'workshop-1',
     description: 'Workshop ID.',
   })

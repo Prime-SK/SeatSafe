@@ -1,0 +1,28 @@
+:host {
+  display: block;
+  max-width: 42rem;
+  margin: auto;
+}
+form,
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+}
+form {
+  gap: 1.5rem;
+}
+fieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+small {
+  color: var(--muted);
+}
+button {
+  justify-self: start;
+}

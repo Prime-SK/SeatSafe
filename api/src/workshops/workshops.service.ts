@@ -42,6 +42,7 @@ export class WorkshopsService {
       reservedSeats: workshop.reservedSeats,
       registrationOpen: workshop.registrationOpen,
       availableSeats: workshop.capacity - workshop.reservedSeats,
+      startsAt: workshop.startsAt.toISOString(),
     };
   }
 }

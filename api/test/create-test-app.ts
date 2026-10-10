@@ -7,8 +7,12 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { WorkshopEntity } from '../src/workshops/workshop.entity.js';
 import { createWorkshopFixtures } from './workshop-fixtures.js';
+import { UserEntity } from '../src/users/user.entity.js';
+import { PasswordHasher } from '../src/auth/password-hasher.js';
 
 export async function createTestApp() {
+  const userRepository = { insert: vi.fn().mockResolvedValue({}) };
+  const passwordHasher = { hash: vi.fn().mockResolvedValue('test-only-hash') };
   const records = createWorkshopFixtures();
   const workshopRepository = {
     find: vi.fn().mockResolvedValue(records),
@@ -34,9 +38,13 @@ export async function createTestApp() {
     .useValue(database)
     .overrideProvider(getRepositoryToken(WorkshopEntity))
     .useValue(workshopRepository)
+    .overrideProvider(getRepositoryToken(UserEntity))
+    .useValue(userRepository)
+    .overrideProvider(PasswordHasher)
+    .useValue(passwordHasher)
     .compile();
   const app: INestApplication<App> = moduleFixture.createNestApplication();
   configureApp(app);
   await app.init();
-  return { app, database, workshopRepository };
+  return { app, database, workshopRepository, userRepository, passwordHasher };
 }

@@ -44,16 +44,19 @@ describe('WorkshopsService', () => {
       expect.objectContaining({
         id: 'workshop-1',
         availableSeats: 3,
+        startsAt: '2026-11-01T10:00:00.000Z',
         registrationOpen: true,
       }),
       expect.objectContaining({
         id: 'workshop-2',
         availableSeats: 8,
+        startsAt: '2026-11-02T10:00:00.000Z',
         registrationOpen: false,
       }),
       expect.objectContaining({
         id: 'workshop-3',
         availableSeats: 0,
+        startsAt: '2026-11-03T10:00:00.000Z',
         registrationOpen: true,
       }),
     ]);
@@ -67,6 +70,7 @@ describe('WorkshopsService', () => {
       reservedSeats: 17,
       registrationOpen: true,
       availableSeats: 3,
+      startsAt: '2026-11-01T10:00:00.000Z',
     });
     expect(repository.findOneBy).toHaveBeenCalledExactlyOnceWith({
       id: 'workshop-1',
@@ -98,7 +102,7 @@ describe('WorkshopsService', () => {
     await expect(service.findAll()).resolves.toEqual([]);
   });
 
-  it('exposes only the six response fields, without entity timestamps', async () => {
+  it('exposes only the seven response fields, without audit timestamps', async () => {
     const response = await service.findById('workshop-1');
     expect(Object.keys(response!)).toEqual([
       'id',
@@ -107,6 +111,7 @@ describe('WorkshopsService', () => {
       'reservedSeats',
       'registrationOpen',
       'availableSeats',
+      'startsAt',
     ]);
     expect(response).not.toBeInstanceOf(WorkshopEntity);
   });

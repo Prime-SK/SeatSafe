@@ -6,6 +6,7 @@ import { DataSource } from 'typeorm';
 import configuredDatabase from '../dist/database/data-source.js';
 import { seedWorkshops } from '../dist/database/seed-workshops.js';
 import { WorkshopEntity } from '../dist/workshops/workshop.entity.js';
+import { CreateWorkshops1791590400000 } from '../dist/database/migrations/1791590400000-CreateWorkshops.js';
 
 const schema = `seatsafe_test_${randomUUID().replaceAll('-', '')}`;
 const tablePath = `${schema}.workshops`;
@@ -37,7 +38,13 @@ describe('Workshop persistence (real PostgreSQL)', () => {
     } finally {
       await runner.release();
     }
-    database = new DataSource({ ...options, schema, logging: false });
+    database = new DataSource({
+      ...options,
+      schema,
+      logging: false,
+      migrations: [CreateWorkshops1791590400000],
+      entities: [WorkshopEntity],
+    });
     await database.initialize();
     await database.runMigrations();
   });

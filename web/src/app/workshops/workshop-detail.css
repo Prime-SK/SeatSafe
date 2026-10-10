@@ -1,0 +1,29 @@
+.back-link {
+  display: inline-block;
+  margin-bottom: 2rem;
+}
+.seat-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  gap: 2rem;
+}
+.summary-card {
+  display: block;
+  margin: 2rem 0;
+}
+dt {
+  color: var(--muted);
+}
+dd {
+  margin: 0.5rem 0 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+@media (max-width: 600px) {
+  .seat-summary {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}

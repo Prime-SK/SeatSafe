@@ -41,6 +41,7 @@ describe('Swagger documentation (e2e)', () => {
     });
     expect(Object.keys(document.paths).sort()).toEqual([
       '/api',
+      '/api/auth/register',
       '/api/health',
       '/api/workshops',
       '/api/workshops/{id}',
@@ -119,6 +120,7 @@ describe('Swagger documentation (e2e)', () => {
       {
         type: 'object',
         required: [
+          'startsAt',
           'id',
           'title',
           'capacity',
@@ -127,6 +129,7 @@ describe('Swagger documentation (e2e)', () => {
           'availableSeats',
         ],
         properties: {
+          startsAt: { type: 'string', format: 'date-time' },
           id: { type: 'string', example: 'workshop-1' },
           title: { type: 'string' },
           capacity: { type: 'number' },
@@ -160,6 +163,7 @@ describe('Swagger documentation (e2e)', () => {
         ).properties,
       ),
     ).toEqual([
+      'startsAt',
       'id',
       'title',
       'capacity',

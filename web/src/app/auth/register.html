@@ -1,0 +1,102 @@
+<p class="eyebrow">Your learning journey</p>
+<h1>Create an account.</h1>
+<p class="intro">
+  Save your details for future workshop bookings. Signing in becomes available in the next phase.
+</p>
+@let current = state();
+<p-card>
+  @if (current.status === 'success') {
+    <p-message severity="success" role="status"
+      ><h2>Account created</h2>
+      <p>Your account is ready. Signing in will be available in the next phase.</p>
+      <a pButton routerLink="/workshops">Browse workshops</a></p-message
+    >
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <fieldset [disabled]="current.status === 'pending'">
+        <legend class="visually-hidden">Registration details</legend>
+        <div class="field">
+          <label pLabel for="displayName">Display name</label
+          ><input
+            pInputText
+            id="displayName"
+            formControlName="displayName"
+            autocomplete="name"
+            [fluid]="true"
+            [invalid]="!!error('displayName')"
+            [attr.aria-invalid]="!!error('displayName')"
+            [attr.aria-describedby]="error('displayName') ? 'displayName-error' : null"
+          />
+          @if (error('displayName'); as message) {
+            <p-message id="displayName-error" severity="error">{{ message }}</p-message>
+          }
+        </div>
+        <div class="field">
+          <label pLabel for="email">Email</label
+          ><input
+            pInputText
+            id="email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            [fluid]="true"
+            [invalid]="!!error('email')"
+            [attr.aria-invalid]="!!error('email')"
+            [attr.aria-describedby]="error('email') ? 'email-error' : null"
+          />
+          @if (error('email'); as message) {
+            <p-message id="email-error" severity="error">{{ message }}</p-message>
+          }
+        </div>
+        <div class="field">
+          <label pLabel for="password">Password</label
+          ><input
+            pInputPassword
+            id="password"
+            formControlName="password"
+            autocomplete="new-password"
+            [fluid]="true"
+            [invalid]="!!error('password')"
+            [attr.aria-invalid]="!!error('password')"
+            [attr.aria-describedby]="
+              error('password') ? 'password-help password-error' : 'password-help'
+            "
+          /><small id="password-help">15–128 characters. Spaces and Unicode are allowed.</small>
+          @if (error('password'); as message) {
+            <p-message id="password-error" severity="error">{{ message }}</p-message>
+          }
+        </div>
+        <div class="field">
+          <label pLabel for="confirmation">Confirm password</label
+          ><input
+            pInputPassword
+            id="confirmation"
+            formControlName="confirmation"
+            autocomplete="new-password"
+            [fluid]="true"
+            [invalid]="!!error('confirmation')"
+            [attr.aria-invalid]="!!error('confirmation')"
+            [attr.aria-describedby]="error('confirmation') ? 'confirmation-error' : null"
+          />
+          @if (error('confirmation'); as message) {
+            <p-message id="confirmation-error" severity="error">{{ message }}</p-message>
+          }
+        </div>
+      </fieldset>
+      @if (current.status === 'error') {
+        <p-message severity="error" role="alert">{{ current.message }}</p-message>
+      }
+      <button
+        pButton
+        type="submit"
+        [disabled]="current.status === 'pending'"
+        [loading]="current.status === 'pending'"
+      >
+        {{ current.status === 'pending' ? 'Creating account…' : 'Create account' }}
+      </button>
+      @if (current.status === 'pending') {
+        <p role="status">Creating account…</p>
+      }
+    </form>
+  }
+</p-card>

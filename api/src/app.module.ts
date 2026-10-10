@@ -5,9 +5,16 @@ import { WorkshopsModule } from './workshops/workshops.module.js';
 import { ConfigurationModule } from './config/configuration.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
-  imports: [ConfigurationModule, DatabaseModule, WorkshopsModule, HealthModule],
+  imports: [
+    ConfigurationModule,
+    DatabaseModule,
+    WorkshopsModule,
+    HealthModule,
+    AuthModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

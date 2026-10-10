@@ -8,4 +8,5 @@ export interface Workshop {
 
 export interface WorkshopResponse extends Workshop {
   readonly availableSeats: number;
+  readonly startsAt: string;
 }

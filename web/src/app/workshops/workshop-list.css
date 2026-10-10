@@ -1,0 +1,49 @@
+.workshop-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+}
+.workshop-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10rem auto;
+  align-items: center;
+  gap: 1.5rem;
+}
+h2 {
+  margin: 0.7rem 0;
+  overflow-wrap: anywhere;
+}
+h2 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+h2 a:hover {
+  text-decoration: underline;
+}
+.seats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.seats strong {
+  font-size: 2rem;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.detail-link {
+  white-space: nowrap;
+}
+@media (max-width: 860px) {
+  .workshop-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .detail-link {
+    justify-self: start;
+  }
+}

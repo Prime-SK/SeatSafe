@@ -91,6 +91,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
         reservedSeats: 0,
         registrationOpen: true,
         availableSeats: 20,
+        startsAt: '2026-10-17T10:00:00.000Z',
       },
       {
         id: 'workshop-2',
@@ -99,6 +100,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
         reservedSeats: 0,
         registrationOpen: false,
         availableSeats: 10,
+        startsAt: '2026-10-24T10:00:00.000Z',
       },
       {
         id: 'workshop-3',
@@ -107,6 +109,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
         reservedSeats: 0,
         registrationOpen: true,
         availableSeats: 12,
+        startsAt: '2026-10-31T10:00:00.000Z',
       },
     ]);
   });
@@ -122,6 +125,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
         reservedSeats: 0,
         registrationOpen: true,
         availableSeats: 20,
+        startsAt: '2026-10-17T10:00:00.000Z',
       });
   });
 
@@ -144,12 +148,10 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
   });
 
   it('reflects an edit on the next request without restarting or reseeding', async () => {
-    await database
-      .getRepository(WorkshopEntity)
-      .update('workshop-1', {
-        title: 'Changed stored title',
-        reservedSeats: 4,
-      });
+    await database.getRepository(WorkshopEntity).update('workshop-1', {
+      title: 'Changed stored title',
+      reservedSeats: 4,
+    });
     const response = await request(app.getHttpServer())
       .get('/api/workshops/workshop-1')
       .expect(200);
@@ -184,6 +186,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
           id: 'workshop-2',
           registrationOpen: false,
           availableSeats: 10,
+          startsAt: '2026-10-24T10:00:00.000Z',
         }),
       ]),
     );
@@ -207,7 +210,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
     expect(await database.getRepository(WorkshopEntity).count()).toBe(3);
   });
 
-  it('never serializes persistence timestamps in list or detail responses', async () => {
+  it('never serializes audit timestamps in list or detail responses', async () => {
     const list = await request(app.getHttpServer())
       .get('/api/workshops')
       .expect(200);
@@ -222,6 +225,7 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
         'reservedSeats',
         'registrationOpen',
         'availableSeats',
+        'startsAt',
       ]);
     }
   });
