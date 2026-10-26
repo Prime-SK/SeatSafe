@@ -31,9 +31,13 @@ export function configureApp(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('SeatSafe API')
     .setDescription(
-      'Workshop browsing, account registration and JWT login. Protected endpoints, refresh and seat reservations arrive in later phases.',
+      'Workshop browsing, registration, JWT login and protected current-account lookup. Refresh and seat reservations arrive in later phases.',
     )
     .setVersion('0.1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'access-token',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
@@ -41,5 +45,6 @@ export function configureApp(app: INestApplication): void {
   SwaggerModule.setup('swagger', app, documentFactory, {
     useGlobalPrefix: false,
     jsonDocumentUrl: 'swagger-json',
+    swaggerOptions: { persistAuthorization: false },
   });
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Header,
   HttpCode,
   Post,
@@ -12,6 +13,7 @@ import {
   ApiResponse,
   ApiOperation,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
@@ -22,14 +24,18 @@ import { LoginDto } from './login.dto.js';
 import { LoginService } from './login.service.js';
 import type { LoginResult } from './login.service.js';
 import { LoginFilter } from './login.filter.js';
+import { AccountSummaryDto } from './account-summary.dto.js';
+import { CurrentUser } from './current-user.decorator.js';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
+import type { AuthenticatedPrincipal } from './authenticated-request.js';
 
-class LoginUserDto {
-  @ApiProperty({ format: 'uuid' }) id: string;
-  @ApiProperty({ example: 'Sample learner' }) displayName: string;
-  @ApiProperty({ example: 'learner@example.test', format: 'email' })
-  email: string;
-  @ApiProperty({ enum: ['USER', 'ADMIN'] }) role: 'USER' | 'ADMIN';
-}
+const noStoreHeaders = {
+  'Cache-Control': {
+    description: 'Do not cache account responses.',
+    schema: { type: 'string', example: 'no-store' },
+  },
+};
+
 class LoginResultDto implements LoginResult {
   @ApiProperty({
     description:
@@ -39,7 +45,7 @@ class LoginResultDto implements LoginResult {
   accessToken: string;
   @ApiProperty({ enum: ['Bearer'] }) tokenType: 'Bearer';
   @ApiProperty({ example: 900 }) expiresIn: number;
-  @ApiProperty({ type: LoginUserDto }) user: LoginUserDto;
+  @ApiProperty({ type: AccountSummaryDto }) user: AccountSummaryDto;
 }
 
 class RegisteredUserDto implements RegisteredUser {
@@ -176,6 +182,43 @@ export class AuthController {
   })
   login(@Body() input: LoginDto): Promise<LoginResult> {
     return this.loginService.login(input);
+  }
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Read the authenticated account',
+    description:
+      'Verifies an HS256 access token and reads its current account/session. Rejects disabled accounts and expired/revoked sessions. Does not renew or modify the session.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: AccountSummaryDto,
+    headers: noStoreHeaders,
+  })
+  @ApiResponse({
+    status: 401,
+    schema: errorSchema(401, 'UNAUTHORIZED', 'Authentication required'),
+    headers: {
+      ...noStoreHeaders,
+      'WWW-Authenticate': {
+        schema: { type: 'string', example: 'Bearer' },
+        description: 'Bearer authentication is required.',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    schema: errorSchema(503, 'DATABASE_UNAVAILABLE', 'Database unavailable'),
+    headers: noStoreHeaders,
+  })
+  me(@CurrentUser() user: AuthenticatedPrincipal): AccountSummaryDto {
+    return {
+      id: user.id,
+      displayName: user.displayName,
+      email: user.email,
+      role: user.role,
+    };
   }
 }
 

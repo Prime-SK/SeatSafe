@@ -22,7 +22,16 @@ export async function createTestApp() {
     where: vi.fn().mockReturnThis(),
     getOne: vi.fn().mockResolvedValue(null),
   };
-  const sessionRepository = { insert: vi.fn().mockResolvedValue({}) };
+  const sessionQuery = {
+    innerJoinAndSelect: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    andWhere: vi.fn().mockReturnThis(),
+    getOne: vi.fn().mockResolvedValue(null),
+  };
+  const sessionRepository = {
+    insert: vi.fn().mockResolvedValue({}),
+    createQueryBuilder: vi.fn().mockReturnValue(sessionQuery),
+  };
   const manager = {
     getRepository: vi
       .fn()
@@ -73,6 +82,8 @@ export async function createTestApp() {
     .useValue(workshopRepository)
     .overrideProvider(getRepositoryToken(UserEntity))
     .useValue(userRepository)
+    .overrideProvider(getRepositoryToken(AuthSessionEntity))
+    .useValue(sessionRepository)
     .overrideProvider(PasswordHasher)
     .useValue(passwordHasher)
     .compile();
@@ -88,5 +99,6 @@ export async function createTestApp() {
     loginQuery,
     lockedQuery,
     sessionRepository,
+    sessionQuery,
   };
 }

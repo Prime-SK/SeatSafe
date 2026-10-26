@@ -195,9 +195,8 @@ describe('Login HTTP contract', () => {
     expect(
       Object.keys(doc.components.schemas.LoginResultDto.properties).sort(),
     ).toEqual(['accessToken', 'expiresIn', 'tokenType', 'user']);
-    expect(doc.components.schemas.LoginUserDto.properties.role.enum).toEqual([
-      'USER',
-      'ADMIN',
-    ]);
+    expect(
+      doc.components.schemas.AccountSummaryDto.properties.role.enum,
+    ).toEqual(['USER', 'ADMIN']);
   });
 });

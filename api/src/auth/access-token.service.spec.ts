@@ -39,4 +39,12 @@ describe('Access tokens and configuration', () => {
       jwt.verify(token.slice(0, -1) + '!', { algorithms: ['HS256'] }),
     ).toThrow();
   });
+  it('verifies the required UUID claims of an actual issued token', async () => {
+    const service = new AccessTokenService(new JwtService({ secret }));
+    const userId = '580f2e1c-163b-4585-ad9e-62b842d17226';
+    const sessionId = 'f425e920-6ab6-4d68-bd86-0b4bde115875';
+    const claims = await service.verify(await service.sign(userId, sessionId));
+    expect(claims).toMatchObject({ sub: userId, sid: sessionId });
+    expect(claims.exp - claims.iat).toBe(900);
+  });
 });
