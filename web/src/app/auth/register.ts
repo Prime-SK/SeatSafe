@@ -1,4 +1,13 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  inject,
+  signal,
+  afterNextRender,
+  ElementRef,
+  Injector,
+  viewChild,
+} from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -38,6 +47,29 @@ export class Register {
   private readonly destroyRef = inject(DestroyRef);
   protected readonly state = signal<RegistrationState>({ status: 'idle' });
   protected readonly submitted = signal(false);
+  private readonly injector = inject(Injector);
+  private readonly summary = viewChild<ElementRef<HTMLElement>>('errorSummary');
+  protected readonly visiblePasswords = signal<Record<string, boolean>>({});
+  protected togglePassword(field: string): void {
+    this.visiblePasswords.update((current) => ({ ...current, [field]: !current[field] }));
+  }
+  protected errorEntries(): { field: Field; message: string }[] {
+    return (Object.keys(this.form.controls) as Field[]).flatMap((field) => {
+      const message = this.error(field);
+      return message ? [{ field, message }] : [];
+    });
+  }
+  private focusSummary(): void {
+    afterNextRender(() => this.summary()?.nativeElement.focus(), { injector: this.injector });
+  }
+  protected focusField(event: Event, field: string): void {
+    event.preventDefault();
+    this.summary()
+      ?.nativeElement.closest('form')
+      ?.querySelector<HTMLInputElement>('[formControlName="' + field + '"]')
+      ?.focus();
+  }
+
   protected readonly serverErrors = signal<Partial<Record<Field, string>>>({});
   protected readonly form = new FormGroup(
     {
@@ -66,6 +98,10 @@ export class Register {
   );
   constructor() {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.serverErrors.set({}));
+    this.destroyRef.onDestroy(() => {
+      this.form.controls.password.reset('');
+      this.form.controls.confirmation.reset('');
+    });
   }
   protected error(field: Field): string | null {
     const control = this.form.controls[field];
@@ -73,8 +109,18 @@ export class Register {
     if (server) return server;
     if (!control.touched && !this.submitted()) return null;
     if (field === 'confirmation')
-      return control.invalid || this.form.hasError('mismatch') ? 'Passwords must match.' : null;
+      return !control.value
+        ? 'Confirm your password.'
+        : this.form.hasError('mismatch')
+          ? 'Passwords must match.'
+          : null;
     if (!control.invalid) return null;
+    if (!control.value)
+      return field === 'displayName'
+        ? 'Enter your display name.'
+        : field === 'email'
+          ? 'Enter your email address.'
+          : 'Enter a password.';
     return field === 'displayName'
       ? 'Enter a name of 1–100 characters.'
       : field === 'email'
@@ -85,7 +131,10 @@ export class Register {
     if (this.state().status === 'pending' || this.state().status === 'success') return;
     this.submitted.set(true);
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.focusSummary();
+      return;
+    }
     this.serverErrors.set({});
     this.state.set({ status: 'pending' });
     const { displayName, email, password } = this.form.getRawValue();
@@ -119,8 +168,11 @@ export class Register {
               message = 'Too many registration attempts. Please try again later.';
             else if (error.status === 503)
               message = 'Registration is temporarily unavailable. Please try again later.';
+            else if (error.status === 0)
+              message = 'Unable to connect. Check your connection and try again.';
           }
           this.state.set({ status: 'error', message });
+          if (this.errorEntries().length) this.focusSummary();
         },
       });
   }

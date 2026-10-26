@@ -1,12 +1,18 @@
+@import './app/auth/auth-layout.css';
 :root {
-  --ink: var(--p-text-color, #192e2b);
-  --muted: var(--p-text-muted-color, #536761);
-  --accent: var(--p-primary-700, #14634e);
-  --accent-soft: var(--p-primary-50, #e4f0e9);
-  --line: var(--p-content-border-color, #dce4df);
+  --ink: var(--p-text-color, #0f172a);
+  --muted: var(--p-text-muted-color, #475569);
+  --accent: var(--p-primary-700, #047857);
+  --accent-soft: var(--p-primary-50, #ecfdf5);
+  --line: #cbd5e1;
+  --page: #f8fafc;
+  --surface: #fff;
+  --motion-fast: 120ms;
+  --motion-state: 180ms;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: var(--ink);
-  background: #f6f8f5;
+  background: var(--page);
+  font-size: 16px;
 }
 * {
   box-sizing: border-box;
@@ -19,19 +25,24 @@ a {
   color: var(--accent);
   text-underline-offset: 0.2em;
 }
-:focus-visible {
-  outline: 3px solid var(--p-primary-700, #14634e);
-  outline-offset: 4px;
+:focus-visible,
+form input.p-inputtext:enabled:focus-visible,
+form input.p-inputpassword:enabled:focus-visible,
+button.p-button:enabled:focus-visible,
+a.p-button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 h1,
 h2,
+h3,
 p {
   margin-top: 0;
 }
 h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.15;
-  letter-spacing: -0.045em;
+  font-size: clamp(1.75rem, 3vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
   margin-bottom: 1rem;
   overflow-wrap: anywhere;
 }
@@ -39,30 +50,76 @@ h2 {
   font-size: 1.25rem;
   line-height: 1.4;
 }
+p:last-child {
+  margin-bottom: 0;
+}
 .intro {
-  max-width: 42rem;
+  max-width: 44rem;
   color: var(--muted);
   margin-bottom: 2rem;
 }
 .eyebrow {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 650;
   margin-bottom: 0.75rem;
+}
+.timezone,
+small {
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 .timezone {
   display: block;
-  font-size: 0.8rem;
-  color: var(--muted);
 }
-p-progress-spinner {
-  display: inline-block;
-  width: 2rem;
-  height: 2rem;
-  margin-right: 0.75rem;
-  vertical-align: middle;
+.p-button {
+  min-height: 44px;
+  text-decoration: none;
+  white-space: normal;
+}
+.p-inputtext {
+  min-height: 44px;
+  font-size: 1rem;
+}
+.p-card {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px #0f172a08;
+}
+.p-card-body {
+  padding: 1.5rem;
+}
+.p-tag {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.p-message {
+  max-width: 100%;
+}
+.p-message-content {
+  min-width: 0;
+}
+.p-message-text {
+  overflow-wrap: anywhere;
+}
+.state-panel {
+  padding: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  max-width: 44rem;
+}
+.state-panel h2 {
+  margin-bottom: 0.5rem;
+}
+.state-panel button,
+.state-panel a {
+  margin-top: 1rem;
+}
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 .visually-hidden {
   position: absolute;
@@ -70,4 +127,42 @@ p-progress-spinner {
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  a.p-button,
+  button.p-button {
+    transition:
+      background-color var(--motion-fast),
+      border-color var(--motion-fast);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+  .p-skeleton {
+    animation: none !important;
+  }
+}
+@media (max-width: 600px) {
+  .p-card-body {
+    padding: 1.25rem;
+  }
+  .state-panel {
+    padding: 1.25rem;
+  }
+}
+
+.workshop-list .p-card,
+.workshop-list .p-card-body,
+.workshop-list .p-card-content {
+  height: 100%;
+}
+.workshop-list .p-card-content {
+  min-width: 0;
 }

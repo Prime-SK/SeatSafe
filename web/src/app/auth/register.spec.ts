@@ -52,6 +52,35 @@ describe('Registration form', () => {
     await render();
   });
   afterEach(() => http.verify());
+  it('focuses a linked error summary and keeps password help and inline errors associated', async () => {
+    submit();
+    await render();
+    const summary = harness.routeNativeElement!.querySelector<HTMLElement>('.error-summary')!;
+    expect(document.activeElement).toBe(summary);
+    expect(summary.querySelectorAll('a').length).toBe(4);
+    summary.querySelector<HTMLAnchorElement>('a[href="#password"]')!.click();
+    expect(document.activeElement).toBe(fieldInput('password'));
+    expect(fieldInput('password').getAttribute('aria-describedby')).toBe(
+      'password-help password-error',
+    );
+    expect(
+      harness
+        .routeNativeElement!.querySelector('#password-error[role="note"]')
+        ?.getAttribute('aria-live'),
+    ).toBe('off');
+  });
+  it('toggles confirmation independently and never sends it in a request', async () => {
+    fill();
+    const toggle = harness.routeNativeElement!.querySelector<HTMLButtonElement>(
+      '[aria-label="Show confirmation password"]',
+    )!;
+    toggle.click();
+    await render();
+    expect(fieldInput('confirmation').type).toBe('text');
+    expect(fieldInput('password').type).toBe('password');
+    expect(fieldInput('confirmation').value).toBe(' a sufficiently long password ');
+    http.expectNone('/api/auth/register');
+  });
   it('requires valid fields and matching confirmation without sending a request', async () => {
     for (const name of ['displayName', 'email', 'password', 'confirmation']) {
       const element = fieldInput(name);
@@ -67,10 +96,10 @@ describe('Registration form', () => {
     }
     submit();
     await render();
-    expectFieldError('displayName', 'Enter a name');
-    expectFieldError('email', 'Enter a valid email');
-    expectFieldError('password', 'Use 15–128 characters');
-    expectFieldError('confirmation', 'Passwords must match');
+    expectFieldError('displayName', 'Enter your display name');
+    expectFieldError('email', 'Enter your email address');
+    expectFieldError('password', 'Enter a password');
+    expectFieldError('confirmation', 'Confirm your password');
     fill();
     input('confirmation', 'different password');
     submit();
@@ -110,10 +139,14 @@ describe('Registration form', () => {
     expect(component.form.get('password')!.value).toBe('');
     expect(component.form.get('confirmation')!.value).toBe('');
     expect(component.form.disabled).toBe(true);
-    expect(harness.routeNativeElement!.querySelector('a')!.getAttribute('href')).toBe('/workshops');
-    expect(harness.routeNativeElement!.querySelector('a')!.classList.contains('p-button')).toBe(
-      true,
-    );
+    expect(
+      harness.routeNativeElement!.querySelector('a[href="/workshops"]')!.getAttribute('href'),
+    ).toBe('/workshops');
+    expect(
+      harness
+        .routeNativeElement!.querySelector('a[href="/workshops"]')!
+        .classList.contains('p-button'),
+    ).toBe(true);
   });
   for (const [status, message] of [
     [409, 'An account with this email'],

@@ -55,7 +55,7 @@ describe('Workshop pages and routing', () => {
       workshopFixtures[0].startsAt,
     );
     expect(text()).toContain('of 20 seats available');
-    expect(harness.routeNativeElement!.querySelector('h2 a')?.getAttribute('href')).toBe(
+    expect(harness.routeNativeElement!.querySelector('.detail-link')?.getAttribute('href')).toBe(
       '/workshops/workshop-2',
     );
   });
@@ -110,7 +110,7 @@ describe('Workshop pages and routing', () => {
     await open('/workshops');
     http.expectOne('/api/workshops').flush(workshopFixtures);
     await render();
-    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('h2 a')!.click();
+    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('.detail-link')!.click();
     await render();
     expect(TestBed.inject(Router).url).toBe('/workshops/workshop-2');
     http.expectOne('/api/workshops/workshop-2').flush(workshopFixtures[0]);

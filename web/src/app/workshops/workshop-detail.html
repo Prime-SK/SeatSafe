@@ -1,60 +1,78 @@
-<a class="back-link" routerLink="/workshops">← Back to workshops</a>
+<a pButton severity="secondary" variant="text" class="back-link" routerLink="/workshops"
+  >← Back to workshops</a
+>
 @let current = state();
 @switch (current.status) {
   @case ('loading') {
-    <div role="status">
-      <p-progress-spinner
-        ariaLabel="Loading workshop"
-        [pt]="{ root: { style: { width: '2rem', height: '2rem' } } }"
-      />Loading workshop…
+    <h1>Workshop details</h1>
+    <p role="status" class="visually-hidden">Loading workshop…</p>
+    <div aria-hidden="true" class="detail-skeleton">
+      <p-skeleton width="70%" height="2rem" /><p-skeleton width="50%" /><p-skeleton
+        height="10rem"
+      />
     </div>
   }
   @case ('not-found') {
-    <p-message severity="warn" role="status"
-      ><h1>Workshop not found</h1>
-      <p>
-        This workshop could not be found. <a routerLink="/workshops">Browse workshops</a>.
-      </p></p-message
-    >
+    <section class="state-panel">
+      <p class="eyebrow">Workshop unavailable</p>
+      <h1>Workshop not found</h1>
+      <p>This workshop could not be found. Browse the catalogue to explore other workshops.</p>
+      <a pButton routerLink="/workshops">Browse workshops</a>
+    </section>
   }
   @case ('error') {
-    <p-message severity="error" role="alert"
-      ><p>{{ current.message }}</p>
-      <button pButton type="button" (click)="retry()">Retry</button></p-message
-    >
+    <h1>Workshop details</h1>
+    <section class="state-panel">
+      <p-message severity="error" role="alert">{{ current.message }}</p-message>
+      <p>Try loading this workshop again, or return to the catalogue.</p>
+      <button pButton type="button" (click)="retry()">Retry</button>
+    </section>
   }
   @case ('success') {
-    <p class="eyebrow">Workshop details</p>
-    <h1>{{ current.workshop.title }}</h1>
-    <p class="schedule">
-      <time [attr.datetime]="current.workshop.startsAt">{{
-        current.workshop.startsAt | workshopDate
-      }}</time
-      ><span class="timezone">Sri Lanka time (UTC+05:30)</span>
-    </p>
-    <p-tag [severity]="current.workshop.registrationOpen ? 'success' : 'warn'"
-      >Registration {{ current.workshop.registrationOpen ? 'open' : 'closed' }}</p-tag
-    >
-    @if (current.workshop.availableSeats === 0) {
-      <p-tag severity="danger">Sold out</p-tag>
-    }
-    <p-card class="summary-card"
-      ><dl class="seat-summary">
-        <div>
-          <dt>Available seats</dt>
-          <dd>{{ current.workshop.availableSeats }}</dd>
-        </div>
-        <div>
-          <dt>Total capacity</dt>
-          <dd>{{ current.workshop.capacity }}</dd>
-        </div>
-        <div>
-          <dt>Reserved seats</dt>
-          <dd>{{ current.workshop.reservedSeats }}</dd>
-        </div>
-      </dl></p-card
-    >
-    <p class="intro">
+    <header class="detail-heading">
+      <p class="eyebrow">Workshop details</p>
+      <h1>{{ current.workshop.title }}</h1>
+      <div class="status-row">
+        <p-tag [severity]="current.workshop.registrationOpen ? 'success' : 'warn'"
+          >Registration {{ current.workshop.registrationOpen ? 'open' : 'closed' }}</p-tag
+        >
+        @if (current.workshop.availableSeats === 0) {
+          <p-tag severity="danger">Sold out</p-tag>
+        }
+      </div>
+    </header>
+    <div class="detail-grid">
+      <p-card
+        ><h2>Schedule</h2>
+        <p class="schedule">
+          <time [attr.datetime]="current.workshop.startsAt">{{
+            current.workshop.startsAt | workshopDate
+          }}</time
+          ><span class="timezone">Sri Lanka time (UTC+05:30)</span>
+        </p>
+        <p class="detail-help">
+          Check the workshop date and registration status before planning your visit.
+        </p></p-card
+      >
+      <p-card class="summary-card"
+        ><h2>Seat availability</h2>
+        <dl class="seat-summary">
+          <div>
+            <dt>Available seats</dt>
+            <dd>{{ current.workshop.availableSeats }}</dd>
+          </div>
+          <div>
+            <dt>Total capacity</dt>
+            <dd>{{ current.workshop.capacity }}</dd>
+          </div>
+          <div>
+            <dt>Reserved seats</dt>
+            <dd>{{ current.workshop.reservedSeats }}</dd>
+          </div>
+        </dl></p-card
+      >
+    </div>
+    <p class="availability-note">
       Seat availability and registration status are separate facts. Having seats available does not
       guarantee that a booking can be made.
     </p>

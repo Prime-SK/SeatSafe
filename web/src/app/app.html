@@ -4,9 +4,16 @@
     >SeatSafe<span>Workshop reservations</span></a
   >
   <nav aria-label="Main navigation">
-    <a routerLink="/workshops" routerLinkActive="active">Workshops</a>
-    <a routerLink="/register" routerLinkActive="active">Create account</a>
+    <a routerLink="/workshops" routerLinkActive="active" ariaCurrentWhenActive="page">Workshops</a>
+    @if (auth.account(); as account) {
+      <p-tag severity="success" [value]="'Signed in as ' + account.displayName" />
+    } @else {
+      <a routerLink="/login" routerLinkActive="active" ariaCurrentWhenActive="page">Sign in</a>
+      <a routerLink="/register" routerLinkActive="active" ariaCurrentWhenActive="page"
+        >Create account</a
+      >
+    }
   </nav>
 </header>
 <main id="main" tabindex="-1"><router-outlet /></main>
-<footer class="site-footer">Discover your next learning opportunity.</footer>
+<footer class="site-footer">SeatSafe. Workshops, made easier.</footer>

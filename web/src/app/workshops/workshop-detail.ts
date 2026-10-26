@@ -19,7 +19,7 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { SkeletonModule } from 'primeng/skeleton';
 
 type DetailState =
   | { status: 'loading' }
@@ -36,7 +36,7 @@ type DetailState =
     CardModule,
     TagModule,
     MessageModule,
-    ProgressSpinnerModule,
+    SkeletonModule,
   ],
   templateUrl: './workshop-detail.html',
   styleUrl: './workshop-detail.css',

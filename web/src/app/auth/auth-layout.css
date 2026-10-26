@@ -1,0 +1,118 @@
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: start;
+}
+.auth-intro {
+  padding-top: 1rem;
+  max-width: 30rem;
+}
+.auth-intro .intro {
+  margin-bottom: 1.5rem;
+}
+.auth-note {
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.auth-panel {
+  min-width: 0;
+  width: 100%;
+}
+.auth-panel form,
+.auth-panel .field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+.auth-panel form {
+  gap: 1.5rem;
+}
+.auth-panel fieldset {
+  display: grid;
+  gap: 1.25rem;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+.auth-panel label {
+  font-weight: 600;
+}
+.auth-panel .submit-button {
+  width: 100%;
+}
+.auth-panel .account-link {
+  margin: 1.5rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+.auth-panel .field .p-message-content {
+  padding: 0.25rem 0;
+}
+.auth-panel .field .p-message {
+  background: transparent;
+  border: 0;
+  color: #b91c1c;
+}
+.auth-panel .field .p-message-text {
+  font-size: 0.875rem;
+}
+.password-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+.password-control button {
+  min-width: 64px;
+}
+.error-summary {
+  border-left: 3px solid #b91c1c;
+  padding: 1rem;
+  background: #fef2f2;
+  border-radius: 6px;
+}
+.error-summary h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+.error-summary ul {
+  padding-left: 1.25rem;
+  margin: 0;
+}
+.error-summary a {
+  display: inline-block;
+  padding: 0.25rem 0;
+  color: #991b1b;
+}
+.success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 767px) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  .auth-panel {
+    max-width: 480px;
+  }
+  .auth-intro {
+    padding: 0;
+  }
+  .auth-note {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .auth-intro .intro {
+    margin-bottom: 0;
+  }
+}

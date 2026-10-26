@@ -1,61 +1,78 @@
-<p class="eyebrow">Learn something new</p>
-<h1>Find your next workshop.</h1>
-<p class="intro">
-  Explore learning opportunities and check the latest schedule and seat counts. Times are shown in
-  Sri Lanka time.
-</p>
+<header class="page-heading">
+  <p class="eyebrow">Explore & learn</p>
+  <h1>Find your next workshop.</h1>
+  <p class="intro">
+    Discover a new skill. Check the schedule and available seats before exploring the details.
+  </p>
+  <p class="timezone">All times are shown in Sri Lanka time (UTC+05:30).</p>
+</header>
 @let current = state();
 @switch (current.status) {
   @case ('loading') {
-    <div role="status">
-      <p-progress-spinner
-        ariaLabel="Loading workshops"
-        [pt]="{ root: { style: { width: '2rem', height: '2rem' } } }"
-      />Loading workshops…
+    <p role="status" class="visually-hidden">Loading workshops…</p>
+    <div class="workshop-list" aria-hidden="true">
+      @for (item of [1, 2, 3]; track item) {
+        <p-card
+          ><div class="card-content">
+            <p-skeleton width="7rem" height="1.5rem" /><p-skeleton
+              width="85%"
+              height="1.75rem"
+            /><p-skeleton width="70%" /><p-skeleton height="4rem" /><p-skeleton
+              height="2.75rem"
+            /></div
+        ></p-card>
+      }
     </div>
   }
   @case ('empty') {
-    <p-message severity="info" role="status">No workshops available.</p-message>
+    <section class="state-panel" role="status">
+      <h2>No workshops available.</h2>
+      <p>There are no workshops to explore right now. Check again soon.</p>
+      <button pButton severity="secondary" type="button" (click)="retry()">Check again</button>
+    </section>
   }
   @case ('error') {
-    <p-message severity="error" role="alert"
-      ><p>{{ current.message }}</p>
-      <button pButton type="button" (click)="retry()">Retry</button></p-message
-    >
+    <section class="state-panel">
+      <p-message severity="error" role="alert">{{ current.message }}</p-message>
+      <p>Try loading the workshop catalogue again.</p>
+      <button pButton type="button" (click)="retry()">Retry</button>
+    </section>
   }
   @case ('success') {
     <ul class="workshop-list" aria-label="Workshops">
       @for (workshop of current.workshops; track workshop.id) {
         <li>
           <p-card
-            ><div class="workshop-row">
-              <div>
+            ><article class="card-content" [attr.aria-labelledby]="'title-' + workshop.id">
+              <div class="status-row">
                 <p-tag [severity]="workshop.registrationOpen ? 'success' : 'warn'"
                   >Registration {{ workshop.registrationOpen ? 'open' : 'closed' }}</p-tag
                 >
-                <h2>
-                  <a [routerLink]="['/workshops', workshop.id]">{{ workshop.title }}</a>
-                </h2>
-                <time [attr.datetime]="workshop.startsAt">{{
-                  workshop.startsAt | workshopDate
-                }}</time
-                ><span class="timezone">Sri Lanka time (UTC+05:30)</span>
-              </div>
-              <div class="seats">
-                <strong>{{ workshop.availableSeats }}</strong
-                ><span>of {{ workshop.capacity }} seats available</span>
                 @if (workshop.availableSeats === 0) {
                   <p-tag severity="danger">Sold out</p-tag>
                 }
               </div>
+              <h2 [id]="'title-' + workshop.id">{{ workshop.title }}</h2>
+              <div class="card-schedule">
+                <span class="detail-label">When</span
+                ><time [attr.datetime]="workshop.startsAt">{{
+                  workshop.startsAt | workshopDate
+                }}</time>
+              </div>
+              <div class="seats">
+                <strong>{{ workshop.availableSeats }}</strong
+                ><span>of {{ workshop.capacity }} seats available</span>
+              </div>
               <a
                 pButton
+                severity="secondary"
+                variant="outlined"
                 class="detail-link"
                 [routerLink]="['/workshops', workshop.id]"
                 [attr.aria-label]="'View details for ' + workshop.title"
                 >View details</a
               >
-            </div></p-card
+            </article></p-card
           >
         </li>
       }

@@ -4,7 +4,6 @@ import { routes } from './app.routes';
 import { provideHttpClient } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
 import { seatSafeTheme } from './prime-theme';
-import aura from '@primeuix/themes/aura';
 
 export function createAppConfig(license = ''): ApplicationConfig {
   return {
@@ -15,7 +14,7 @@ export function createAppConfig(license = ''): ApplicationConfig {
       providePrimeNG({
         license,
         theme: {
-          preset: aura,
+          preset: seatSafeTheme,
           options: {
             darkModeSelector: false,
           },

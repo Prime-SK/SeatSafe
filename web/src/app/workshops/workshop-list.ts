@@ -10,7 +10,7 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { SkeletonModule } from 'primeng/skeleton';
 
 type ListState =
   | { status: 'loading' }
@@ -27,7 +27,7 @@ type ListState =
     CardModule,
     TagModule,
     MessageModule,
-    ProgressSpinnerModule,
+    SkeletonModule,
   ],
   templateUrl: './workshop-list.html',
   styleUrl: './workshop-list.css',

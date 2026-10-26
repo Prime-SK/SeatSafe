@@ -1,0 +1,140 @@
+<div class="auth-layout">
+  <header class="auth-intro">
+    <p class="eyebrow">Your learning journey</p>
+    <h1>{{ auth.authenticated() ? 'Your account.' : 'Sign in.' }}</h1>
+    <p class="intro">
+      {{
+        auth.authenticated()
+          ? 'You’re ready to explore workshops.'
+          : 'Welcome back. Sign in to your SeatSafe account.'
+      }}
+    </p>
+    <p class="auth-note">Browse workshop schedules and seat availability in one place.</p>
+  </header>
+  <section class="auth-panel" aria-label="Sign in">
+    @if (auth.account(); as account) {
+      <p-card
+        ><p-message severity="success" role="status"
+          >You’re signed in as {{ account.displayName }}.</p-message
+        >
+        <p><a pButton routerLink="/workshops">Browse workshops</a></p></p-card
+      >
+    } @else {
+      @let current = state();
+      <p-card>
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          @if (submitted() && errorEntries().length) {
+            <section
+              #errorSummary
+              class="error-summary"
+              tabindex="-1"
+              aria-labelledby="login-error-title"
+            >
+              <h2 id="login-error-title">Check your details</h2>
+              <ul>
+                @for (entry of errorEntries(); track entry.field) {
+                  <li>
+                    <a
+                      [attr.href]="'#' + 'login-' + entry.field"
+                      (click)="focusField($event, entry.field)"
+                      >{{ entry.message }}</a
+                    >
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+          <fieldset
+            [disabled]="current.status === 'pending'"
+            [attr.aria-busy]="current.status === 'pending'"
+          >
+            <legend class="visually-hidden">Sign-in details</legend>
+            <div class="field">
+              <label pLabel for="login-email">Email</label>
+              <input
+                pInputText
+                id="login-email"
+                type="email"
+                aria-required="true"
+                formControlName="email"
+                autocomplete="username"
+                [fluid]="true"
+                [invalid]="!!error('email')"
+                [attr.aria-invalid]="!!error('email')"
+                [attr.aria-describedby]="error('email') ? 'login-email-error' : null"
+              />
+              @if (error('email'); as message) {
+                <p-message
+                  id="login-email-error"
+                  severity="error"
+                  variant="simple"
+                  role="note"
+                  aria-live="off"
+                  >{{ message }}</p-message
+                >
+              }
+            </div>
+            <div class="field">
+              <label pLabel for="login-password">Password</label>
+              <div class="password-control">
+                <input
+                  pInputPassword
+                  [mask]="!visiblePasswords()['password']"
+                  id="login-password"
+                  aria-required="true"
+                  formControlName="password"
+                  autocomplete="current-password"
+                  [fluid]="true"
+                  [invalid]="!!error('password')"
+                  [attr.aria-invalid]="!!error('password')"
+                  [attr.aria-describedby]="error('password') ? 'login-password-error' : null"
+                /><button
+                  pButton
+                  type="button"
+                  severity="secondary"
+                  variant="text"
+                  [disabled]="current.status === 'pending'"
+                  [attr.aria-label]="
+                    (visiblePasswords()['password'] ? 'Hide ' : 'Show ') + 'password'
+                  "
+                  [attr.aria-pressed]="!!visiblePasswords()['password']"
+                  (click)="togglePassword('password')"
+                >
+                  {{ visiblePasswords()['password'] ? 'Hide' : 'Show' }}
+                </button>
+              </div>
+              @if (error('password'); as message) {
+                <p-message
+                  id="login-password-error"
+                  severity="error"
+                  variant="simple"
+                  role="note"
+                  aria-live="off"
+                  >{{ message }}</p-message
+                >
+              }
+            </div>
+          </fieldset>
+          @if (current.status === 'error') {
+            <p-message severity="error" role="alert">{{ current.message }}</p-message>
+          }
+          <button
+            pButton
+            type="submit"
+            class="submit-button"
+            [disabled]="current.status === 'pending'"
+            [loading]="current.status === 'pending'"
+          >
+            {{ current.status === 'pending' ? 'Signing in…' : 'Sign in' }}
+          </button>
+          @if (current.status === 'pending') {
+            <p role="status" class="visually-hidden">Signing in…</p>
+          }
+        </form>
+        <p class="account-link">
+          New to SeatSafe? <a pButton severity="secondary" routerLink="/register">Create account</a>
+        </p>
+      </p-card>
+    }
+  </section>
+</div>
