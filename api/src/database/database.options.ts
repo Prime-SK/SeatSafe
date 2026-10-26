@@ -4,6 +4,7 @@ import type { Environment } from '../config/environment.js';
 import { WorkshopEntity } from '../workshops/workshop.entity.js';
 import { UserEntity } from '../users/user.entity.js';
 import { AuthSessionEntity } from '../auth/auth-session.entity.js';
+import { AuthRefreshTokenEntity } from '../auth/auth-refresh-token.entity.js';
 
 export function createDatabaseOptions(
   environment: Environment,
@@ -18,7 +19,12 @@ export function createDatabaseOptions(
     ssl: false,
     connectTimeoutMS: 5000,
     extra: { query_timeout: 5000 },
-    entities: [WorkshopEntity, UserEntity, AuthSessionEntity],
+    entities: [
+      WorkshopEntity,
+      UserEntity,
+      AuthSessionEntity,
+      AuthRefreshTokenEntity,
+    ],
     migrations: [
       fileURLToPath(new URL('./migrations/*.js', import.meta.url)).replaceAll(
         '\\',

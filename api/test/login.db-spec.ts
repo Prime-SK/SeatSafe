@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { vi } from 'vitest';
 import configuredDatabase from '../dist/database/data-source.js';
 import { UserEntity } from '../dist/users/user.entity.js';
+import { AuthRefreshTokenEntity } from '../dist/auth/auth-refresh-token.entity.js';
 import { AuthSessionEntity } from '../dist/auth/auth-session.entity.js';
 import { AccessTokenService } from '../dist/auth/access-token.service.js';
 import { PasswordHasher } from '../dist/auth/password-hasher.js';
@@ -40,6 +41,11 @@ describe('Login sessions with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database
+      .getRepository(AuthRefreshTokenEntity)
+      .createQueryBuilder()
+      .delete()
+      .execute();
     await database
       .getRepository(AuthSessionEntity)
       .createQueryBuilder()
@@ -89,7 +95,10 @@ describe('Login sessions with real PostgreSQL', () => {
     }
   });
   const login = (input = { email: ' Learner@Example.test ', password }) =>
-    request(app.getHttpServer()).post('/api/auth/login').send(input);
+    request(app.getHttpServer())
+      .post('/api/auth/login')
+      .set('Origin', 'http://localhost:3000')
+      .send(input);
   it('creates a linked seven-day session and returns a verified 15-minute token', async () => {
     const result = await login().expect(200);
     const claims = app
@@ -112,7 +121,7 @@ describe('Login sessions with real PostgreSQL', () => {
       'id',
       'role',
     ]);
-    expect(result.headers['set-cookie']).toBeUndefined();
+    expect(result.headers['set-cookie'][0]).toContain('seatsafe_refresh=');
     expect(result.headers['cache-control']).toBe('no-store');
   });
   it('keeps independent concurrent logins and their distinct session identifiers', async () => {
@@ -203,6 +212,7 @@ describe('Login sessions with real PostgreSQL', () => {
       'CreateWorkshops1791590400000',
       'CreateUsers1791676800000',
       'CreateAuthSessions1791763200000',
+      'CreateAuthRefreshTokens1792972800000',
     ]);
     const runner = database.createQueryRunner();
     try {
@@ -219,6 +229,7 @@ describe('Login sessions with real PostgreSQL', () => {
   it('reverses and reapplies only sessions while keeping the account and workshop tables', async () => {
     await login().expect(200);
     await database.undoLastMigration();
+    await database.undoLastMigration();
     expect(
       (
         await database.query('SELECT to_regclass($1) AS name', [
@@ -234,6 +245,6 @@ describe('Login sessions with real PostgreSQL', () => {
         ])
       )[0].name,
     ).not.toBeNull();
-    expect(await database.runMigrations()).toHaveLength(1);
+    expect(await database.runMigrations()).toHaveLength(2);
   });
 });

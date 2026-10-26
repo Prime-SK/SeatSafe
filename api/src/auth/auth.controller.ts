@@ -5,6 +5,8 @@ import {
   Header,
   HttpCode,
   Post,
+  Res,
+  Req,
   UseFilters,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +16,7 @@ import {
   ApiOperation,
   ApiTags,
   ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
@@ -28,6 +31,12 @@ import { AccountSummaryDto } from './account-summary.dto.js';
 import { CurrentUser } from './current-user.decorator.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import type { AuthenticatedPrincipal } from './authenticated-request.js';
+import type { Request, Response } from 'express';
+import { LoginOriginGuard } from './login-origin.guard.js';
+import { RefreshCookieService } from './refresh-cookie.service.js';
+import { SessionCredentialService } from './session-credential.service.js';
+import { SessionCredentialFilter } from './session-credential.filter.js';
+import { readRefreshCredential } from './refresh-credential.js';
 
 const noStoreHeaders = {
   'Cache-Control': {
@@ -73,6 +82,8 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly loginService: LoginService,
+    private readonly refreshCookie: RefreshCookieService,
+    private readonly sessionCredentials: SessionCredentialService,
   ) {}
   @Post('register')
   @UseFilters(RegistrationFilter)
@@ -124,16 +135,21 @@ export class AuthController {
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   @UseFilters(LoginFilter)
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(LoginOriginGuard, ThrottlerGuard)
   @ApiOperation({
     summary: 'Sign in',
     description:
-      'Normalizes email, verifies the unchanged password and creates an independent seven-day session. Returns a 15-minute access token. No refresh cookie yet. Limited to five attempts per minute per request IP, independently of registration.',
+      'Requires an allowed Origin or Referer. Creates an independent seven-day session and HttpOnly refresh cookie; returns a 15-minute access token. Use refresh to rotate the cookie and logout to revoke its session. Limited to five attempts per minute per IP independently of registration.',
   })
   @ApiResponse({
     status: 200,
     type: LoginResultDto,
     headers: {
+      'Set-Cookie': {
+        description:
+          'seatsafe_refresh=<opaque credential>; Path=/api/auth; HttpOnly; SameSite=Lax; expires with session; Secure in production. Not exposed to browser JavaScript.',
+        schema: { type: 'string' },
+      },
       'Cache-Control': {
         description: 'Do not cache the credential response.',
         schema: { type: 'string', example: 'no-store' },
@@ -180,8 +196,153 @@ export class AuthController {
     status: 500,
     schema: errorSchema(500, 'INTERNAL_ERROR', 'Unable to sign in'),
   })
-  login(@Body() input: LoginDto): Promise<LoginResult> {
-    return this.loginService.login(input);
+  @ApiResponse({
+    status: 403,
+    schema: errorSchema(
+      403,
+      'ORIGIN_NOT_ALLOWED',
+      'Request origin not allowed',
+    ),
+  })
+  async login(
+    @Body() input: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LoginResult> {
+    const result = await this.loginService.login(input);
+    this.refreshCookie.set(
+      response,
+      result.refreshToken,
+      result.sessionExpiresAt,
+    );
+    const { accessToken, tokenType, expiresIn, user } = result.profile;
+    return { accessToken, tokenType, expiresIn, user };
+  }
+  @Post('refresh')
+  @HttpCode(200)
+  @UseFilters(SessionCredentialFilter)
+  @UseGuards(LoginOriginGuard, ThrottlerGuard)
+  @ApiCookieAuth('refresh-cookie')
+  @ApiOperation({
+    summary: 'Rotate refresh credential',
+    description:
+      'Requires an allowed Origin or Referer and exactly one seatsafe_refresh cookie. Browsers obtain the HttpOnly cookie through login, not Swagger Cookie input. Rotates within the original seven-day session. Reuse of a consumed credential revokes that session, including simultaneous duplicate refreshes. Body, query and Bearer credentials are ignored.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: LoginResultDto,
+    headers: {
+      ...noStoreHeaders,
+      'Set-Cookie': {
+        description:
+          'Replacement HttpOnly seatsafe_refresh cookie with original session expiry.',
+        schema: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    schema: errorSchema(401, 'UNAUTHORIZED', 'Authentication required'),
+    headers: {
+      ...noStoreHeaders,
+      'Set-Cookie': {
+        description: 'Expires the stale seatsafe_refresh cookie.',
+        schema: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    schema: errorSchema(
+      403,
+      'ORIGIN_NOT_ALLOWED',
+      'Request origin not allowed',
+    ),
+    headers: noStoreHeaders,
+  })
+  @ApiResponse({
+    status: 429,
+    schema: errorSchema(
+      429,
+      'RATE_LIMITED',
+      'Too many refresh attempts. Please try again later.',
+    ),
+    headers: noStoreHeaders,
+  })
+  @ApiResponse({
+    status: 500,
+    schema: errorSchema(500, 'INTERNAL_ERROR', 'Unable to refresh session'),
+    headers: noStoreHeaders,
+  })
+  @ApiResponse({
+    status: 503,
+    schema: errorSchema(503, 'DATABASE_UNAVAILABLE', 'Database unavailable'),
+    headers: noStoreHeaders,
+  })
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LoginResult> {
+    const result = await this.sessionCredentials.refresh(
+      readRefreshCredential(request),
+    );
+    this.refreshCookie.set(
+      response,
+      result.refreshToken,
+      result.sessionExpiresAt,
+    );
+    const { accessToken, tokenType, expiresIn, user } = result.profile;
+    return { accessToken, tokenType, expiresIn, user };
+  }
+  @Post('logout')
+  @HttpCode(204)
+  @UseFilters(SessionCredentialFilter)
+  @UseGuards(LoginOriginGuard, ThrottlerGuard)
+  @ApiOperation({
+    summary: 'Revoke the cookie session and clear its cookie',
+    description:
+      'Requires an allowed Origin or Referer. Optional seatsafe_refresh cookie identifies only the session to revoke, including consumed credentials. Missing, malformed, duplicate, unknown or already revoked credentials still return 204. No Bearer access token is required. Database failure retains the cookie for retry.',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Idempotent logout; no response body.',
+    headers: {
+      ...noStoreHeaders,
+      'Set-Cookie': {
+        description:
+          'Expires seatsafe_refresh with matching cookie scope/options.',
+        schema: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    schema: errorSchema(
+      403,
+      'ORIGIN_NOT_ALLOWED',
+      'Request origin not allowed',
+    ),
+    headers: noStoreHeaders,
+  })
+  @ApiResponse({
+    status: 429,
+    schema: errorSchema(
+      429,
+      'RATE_LIMITED',
+      'Too many logout attempts. Please try again later.',
+    ),
+    headers: noStoreHeaders,
+  })
+  @ApiResponse({
+    status: 503,
+    schema: errorSchema(503, 'DATABASE_UNAVAILABLE', 'Database unavailable'),
+    headers: noStoreHeaders,
+  })
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.sessionCredentials.logout(readRefreshCredential(request));
+    this.refreshCookie.clear(response);
   }
   @Get('me')
   @UseGuards(JwtAuthGuard)

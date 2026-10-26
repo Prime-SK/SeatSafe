@@ -12,6 +12,14 @@ import {
   SESSION_SECONDS,
 } from './access-token.service.js';
 import type { LoginDto } from './login.dto.js';
+import { RefreshTokenService } from './refresh-token.service.js';
+import { AuthRefreshTokenEntity } from './auth-refresh-token.entity.js';
+
+export interface InternalLoginResult {
+  profile: LoginResult;
+  refreshToken: string;
+  sessionExpiresAt: Date;
+}
 
 export interface LoginResult {
   accessToken: string;
@@ -33,6 +41,7 @@ export class LoginService {
     private readonly passwords: PasswordHasher,
     private readonly database: DataSource,
     private readonly tokens: AccessTokenService,
+    private readonly refresh: RefreshTokenService,
   ) {}
   private invalid(): RegistrationError {
     return new RegistrationError(
@@ -41,7 +50,7 @@ export class LoginService {
       'Invalid email or password',
     );
   }
-  async login(input: LoginDto): Promise<LoginResult> {
+  async login(input: LoginDto): Promise<InternalLoginResult> {
     let user: UserEntity | null;
     try {
       user = await this.users
@@ -79,12 +88,32 @@ export class LoginService {
         if (!current || !current.isEnabled) throw this.invalid();
         const now = new Date();
         const sessionId = randomUUID();
+        const sessionExpiresAt = new Date(
+          now.getTime() + SESSION_SECONDS * 1000,
+        );
+        let credential: { raw: string; hash: string };
+        try {
+          credential = this.refresh.generate();
+        } catch {
+          throw new RegistrationError(
+            500,
+            'INTERNAL_ERROR',
+            'Unable to sign in',
+          );
+        }
         await manager.getRepository(AuthSessionEntity).insert({
           id: sessionId,
           userId: current.id,
           createdAt: now,
-          expiresAt: new Date(now.getTime() + SESSION_SECONDS * 1000),
+          expiresAt: sessionExpiresAt,
           revokedAt: null,
+        });
+        await manager.getRepository(AuthRefreshTokenEntity).insert({
+          id: randomUUID(),
+          sessionId,
+          tokenHash: credential.hash,
+          createdAt: now,
+          consumedAt: null,
         });
         let accessToken: string;
         try {
@@ -97,14 +126,18 @@ export class LoginService {
           );
         }
         return {
-          accessToken,
-          tokenType: 'Bearer',
-          expiresIn: ACCESS_TOKEN_SECONDS,
-          user: {
-            id: current.id,
-            displayName: current.displayName,
-            email: current.email,
-            role: current.role,
+          refreshToken: credential.raw,
+          sessionExpiresAt,
+          profile: {
+            accessToken,
+            tokenType: 'Bearer',
+            expiresIn: ACCESS_TOKEN_SECONDS,
+            user: {
+              id: current.id,
+              displayName: current.displayName,
+              email: current.email,
+              role: current.role,
+            },
           },
         };
       });

@@ -10,6 +10,7 @@ import { createWorkshopFixtures } from './workshop-fixtures.js';
 import { UserEntity } from '../src/users/user.entity.js';
 import { PasswordHasher } from '../src/auth/password-hasher.js';
 import { AuthSessionEntity } from '../src/auth/auth-session.entity.js';
+import { AuthRefreshTokenEntity } from '../src/auth/auth-refresh-token.entity.js';
 
 export async function createTestApp() {
   const loginQuery = {
@@ -32,13 +33,24 @@ export async function createTestApp() {
     insert: vi.fn().mockResolvedValue({}),
     createQueryBuilder: vi.fn().mockReturnValue(sessionQuery),
   };
+  const credentialQuery = {
+    innerJoinAndSelect: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    getOne: vi.fn().mockResolvedValue(null),
+  };
+  const refreshRepository = {
+    insert: vi.fn().mockResolvedValue({}),
+    createQueryBuilder: vi.fn().mockReturnValue(credentialQuery),
+  };
   const manager = {
     getRepository: vi
       .fn()
       .mockImplementation((entity: unknown) =>
-        entity === AuthSessionEntity
-          ? sessionRepository
-          : { createQueryBuilder: () => lockedQuery },
+        entity === AuthRefreshTokenEntity
+          ? refreshRepository
+          : entity === AuthSessionEntity
+            ? sessionRepository
+            : { createQueryBuilder: () => lockedQuery },
       ),
   };
   const userRepository = {
@@ -86,6 +98,8 @@ export async function createTestApp() {
     .useValue(sessionRepository)
     .overrideProvider(PasswordHasher)
     .useValue(passwordHasher)
+    .overrideProvider(getRepositoryToken(AuthRefreshTokenEntity))
+    .useValue(refreshRepository)
     .compile();
   const app: INestApplication<App> = moduleFixture.createNestApplication();
   configureApp(app);
@@ -100,5 +114,7 @@ export async function createTestApp() {
     lockedQuery,
     sessionRepository,
     sessionQuery,
+    refreshRepository,
+    credentialQuery,
   };
 }

@@ -11,6 +11,12 @@ import { LoginService } from './login.service.js';
 import { AuthSessionEntity } from './auth-session.entity.js';
 import { SessionAuthenticationService } from './session-authentication.service.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { AuthRefreshTokenEntity } from './auth-refresh-token.entity.js';
+import { RefreshTokenService } from './refresh-token.service.js';
+import { RefreshCookieService } from './refresh-cookie.service.js';
+import { LoginOriginGuard } from './login-origin.guard.js';
+import { SessionCredentialService } from './session-credential.service.js';
+import { SessionCredentialFilter } from './session-credential.filter.js';
 import {
   AccessTokenService,
   validateJwtSecret,
@@ -18,7 +24,11 @@ import {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, AuthSessionEntity]),
+    TypeOrmModule.forFeature([
+      UserEntity,
+      AuthSessionEntity,
+      AuthRefreshTokenEntity,
+    ]),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 5 }]),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -35,6 +45,11 @@ import {
     AccessTokenService,
     SessionAuthenticationService,
     JwtAuthGuard,
+    RefreshTokenService,
+    RefreshCookieService,
+    LoginOriginGuard,
+    SessionCredentialService,
+    SessionCredentialFilter,
   ],
   exports: [JwtAuthGuard],
 })

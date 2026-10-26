@@ -8,6 +8,7 @@ import request from 'supertest';
 import { JwtService } from '@nestjs/jwt';
 import configuredDatabase from '../dist/database/data-source.js';
 import { UserEntity } from '../dist/users/user.entity.js';
+import { AuthRefreshTokenEntity } from '../dist/auth/auth-refresh-token.entity.js';
 import { AuthSessionEntity } from '../dist/auth/auth-session.entity.js';
 
 const schema = `seatsafe_test_${randomUUID().replaceAll('-', '')}`;
@@ -40,6 +41,11 @@ describe('Protected account with real PostgreSQL', () => {
   });
   beforeEach(async () => {
     await database
+      .getRepository(AuthRefreshTokenEntity)
+      .createQueryBuilder()
+      .delete()
+      .execute();
+    await database
       .getRepository(AuthSessionEntity)
       .createQueryBuilder()
       .delete()
@@ -71,6 +77,7 @@ describe('Protected account with real PostgreSQL', () => {
     accessToken = (
       await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('Origin', 'http://localhost:3000')
         .send({ email: 'protected@example.test', password })
         .expect(200)
     ).body.accessToken;
@@ -160,8 +167,12 @@ describe('Protected account with real PostgreSQL', () => {
       await database
         .getRepository(AuthSessionEntity)
         .update(sessionId, { expiresAt: new Date(0) });
-    if (kind === 'missing session' || kind === 'missing account')
+    if (kind === 'missing session' || kind === 'missing account') {
+      await database
+        .getRepository(AuthRefreshTokenEntity)
+        .delete({ sessionId });
       await database.getRepository(AuthSessionEntity).delete(sessionId);
+    }
     if (kind === 'missing account')
       await database.getRepository(UserEntity).delete(userId);
     const result = await me().expect(401);
@@ -187,6 +198,7 @@ describe('Protected account with real PostgreSQL', () => {
     const second = (
       await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('Origin', 'http://localhost:3000')
         .send({ email: 'protected@example.test', password })
         .expect(200)
     ).body.accessToken;

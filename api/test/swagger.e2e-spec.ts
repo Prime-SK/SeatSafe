@@ -42,7 +42,9 @@ describe('Swagger documentation (e2e)', () => {
     expect(Object.keys(document.paths).sort()).toEqual([
       '/api',
       '/api/auth/login',
+      '/api/auth/logout',
       '/api/auth/me',
+      '/api/auth/refresh',
       '/api/auth/register',
       '/api/health',
       '/api/workshops',

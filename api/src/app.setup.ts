@@ -31,12 +31,22 @@ export function configureApp(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('SeatSafe API')
     .setDescription(
-      'Workshop browsing, registration, JWT login and protected current-account lookup. Refresh and seat reservations arrive in later phases.',
+      'Workshop browsing, registration, JWT login, rotating refresh cookies, logout and protected current-account lookup. Seat reservations arrive in later phases.',
     )
     .setVersion('0.1.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       'access-token',
+    )
+    .addCookieAuth(
+      'seatsafe_refresh',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        description:
+          'HttpOnly credential set automatically by login/refresh. Browsers cannot set a Cookie header through Swagger Authorize.',
+      },
+      'refresh-cookie',
     )
     .build();
 

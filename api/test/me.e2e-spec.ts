@@ -239,6 +239,7 @@ describe('Protected current-account HTTP contract', () => {
     await request(fixture.app.getHttpServer()).get('/api/health').expect(200);
     await request(fixture.app.getHttpServer())
       .post('/api/auth/login')
+      .set('Origin', 'http://localhost:3000')
       .send({})
       .expect(400);
     await request(fixture.app.getHttpServer())
@@ -261,6 +262,8 @@ describe('Protected current-account HTTP contract', () => {
       )) {
         if (path === '/api/auth/me')
           expect(operation.security).toEqual([{ 'access-token': [] }]);
+        else if (path === '/api/auth/refresh')
+          expect(operation.security).toEqual([{ 'refresh-cookie': [] }]);
         else expect(operation.security).toBeUndefined();
       }
     }

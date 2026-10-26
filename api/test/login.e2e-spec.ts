@@ -28,11 +28,14 @@ describe('Login HTTP contract', () => {
     await fixture.app.close();
   });
   const post = (body: object) =>
-    request(fixture.app.getHttpServer()).post('/api/auth/login').send(body);
+    request(fixture.app.getHttpServer())
+      .post('/api/auth/login')
+      .set('Origin', 'http://localhost:3000')
+      .send(body);
   it('normalizes email, preserves password, signs a token and returns only safe fields', async () => {
     const result = await post(payload).expect(200);
     expect(result.headers['cache-control']).toBe('no-store');
-    expect(result.headers['set-cookie']).toBeUndefined();
+    expect(result.headers['set-cookie'][0]).toContain('seatsafe_refresh=');
     expect(Object.keys(result.body).sort()).toEqual([
       'accessToken',
       'expiresIn',
@@ -182,6 +185,7 @@ describe('Login HTTP contract', () => {
       '200',
       '400',
       '401',
+      '403',
       '429',
       '500',
       '503',
