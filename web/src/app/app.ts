@@ -3,10 +3,11 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } fro
 import { Authentication } from './auth/authentication';
 import { DOCUMENT } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { SessionActions } from './auth/session-actions';
 import { TagModule } from 'primeng/tag';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TagModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TagModule, SessionActions],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
@@ -16,6 +17,7 @@ export class App {
   protected readonly auth = inject(Authentication);
   private readonly document = inject(DOCUMENT);
   constructor() {
+    this.auth.initialize().subscribe();
     let focusPending = false;
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event instanceof NavigationEnd) focusPending = true;

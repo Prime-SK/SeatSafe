@@ -2,9 +2,11 @@
 
 A workshop reservation project built step by step with Angular, NestJS, and PostgreSQL.
 
-The Phase 15 UI/UX follow-up is implemented: [redesign guide](docs/phases/phase-15-ui-ux-redesign.md), [saved plan](docs/phases/phase-15-follow-up-plan.md) and [learning checkpoint](docs/phases/phase-15-follow-up-checkpoint.md). All existing screens now share the light PrimeNG design system, responsive workshop grid, polished forms and accessible validation feedback. Learning review remains pending; Phase 16 has not started. Actual 200% browser zoom and OS reduced-motion verification remain manual checks.
+Phase 16 browser session handling is implemented: [guide](docs/phases/phase-16-browser-sessions.md), [saved plan](docs/phases/phase-16-plan.md) and [20-question checkpoint](docs/phases/phase-16-checkpoint.md). Sign-in restores on reload; a guarded Account page reads the current profile, and coordinated refresh/logout work across same-origin tabs. Tokens stay private in each tab's memory. Learning review remains pending; Phase 17 has not started.
 
-Start with the [documentation index](docs/README.md), [implementation plan](docs/implementation-plan.md), and [Phase 15 Angular login guide](docs/phases/phase-15-angular-login.md). Its authentication prerequisites are [Phase 11 login](docs/phases/phase-11-jwt-login.md) and [Phase 10 registration](docs/phases/phase-10-registration.md). Configuration and connection are explained in [Phase 5](docs/phases/phase-05-configuration.md) and [Phase 6](docs/phases/phase-06-postgresql.md); table creation and seeding are explained in [Phase 7](docs/phases/phase-07-workshop-data.md), and repository reads in [Phase 8](docs/phases/phase-08-workshop-reads.md).
+The [Phase 15 redesign guide](docs/phases/phase-15-ui-ux-redesign.md) explains the shared PrimeNG Aura/green UI. Actual 200% zoom and OS reduced-motion verification remain manual checks.
+
+Start with the [documentation index](docs/README.md), [implementation plan](docs/implementation-plan.md), and [Phase 16 browser-session guide](docs/phases/phase-16-browser-sessions.md). Its Angular prerequisite is [Phase 15 login](docs/phases/phase-15-angular-login.md); backend prerequisites are [Phase 11 login](docs/phases/phase-11-jwt-login.md) and [Phase 10 registration](docs/phases/phase-10-registration.md). Configuration and connection are explained in [Phase 5](docs/phases/phase-05-configuration.md) and [Phase 6](docs/phases/phase-06-postgresql.md); table creation and seeding are explained in [Phase 7](docs/phases/phase-07-workshop-data.md), and repository reads in [Phase 8](docs/phases/phase-08-workshop-reads.md).
 
 ## Run SeatSafe locally
 

@@ -1,6 +1,13 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './auth/auth-guard';
 
 export const routes: Routes = [
+  {
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () => import('./auth/account').then((m) => m.Account),
+    title: 'Your account | SeatSafe',
+  },
   {
     path: 'login',
     loadComponent: () => import('./auth/login').then((m) => m.Login),

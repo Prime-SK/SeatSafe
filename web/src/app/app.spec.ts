@@ -1,3 +1,5 @@
+import { of } from 'rxjs';
+import { sessionTestingProvider } from './auth/session-testing.spec-helper';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { routes } from './app.routes';
@@ -10,8 +12,14 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        sessionTestingProvider,
+        provideRouter(routes),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
+    vi.spyOn(TestBed.inject(Authentication), 'initialize').mockReturnValue(of(undefined));
   });
   it('focuses a new route heading and leaves ordinary field interaction alone', async () => {
     const fixture = TestBed.createComponent(App);

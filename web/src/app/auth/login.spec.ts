@@ -1,3 +1,4 @@
+import { sessionTestingProvider } from './session-testing.spec-helper';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -41,7 +42,12 @@ describe('Login form', () => {
   };
   beforeEach(async () => {
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        sessionTestingProvider,
+        provideRouter(routes),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     });
     http = TestBed.inject(HttpTestingController);
     harness = await RouterTestingHarness.create('/login');
@@ -184,15 +190,34 @@ describe('Login form', () => {
       http.expectNone('/api/auth/refresh');
     },
   );
-  it('cancels pending login and clears the password when leaving the page', async () => {
+  it('keeps a dispatched cookie login alive but clears the password and prevents late navigation', async () => {
     fill();
     submit();
     const req = http.expectOne('/api/auth/login');
     const component = harness.routeDebugElement!.componentInstance as { form: FormGroup };
     await harness.navigateByUrl('/register');
-    expect(req.cancelled).toBe(true);
+    expect(req.cancelled).toBe(false);
+    req.flush(response);
+    await render();
+    expect(TestBed.inject(Router).url).toBe('/register');
     expect(component.form.get('password')!.value).toBe('');
-    expect(TestBed.inject(Authentication).authenticated()).toBe(false);
+    expect(TestBed.inject(Authentication).authenticated()).toBe(true);
+  });
+  it('shows the root-owned login in progress after returning to the login route', async () => {
+    fill();
+    submit();
+    const request = http.expectOne('/api/auth/login');
+    await harness.navigateByUrl('/register');
+    await harness.navigateByUrl('/login');
+    await render();
+    expect(root().querySelector('form')).toBeNull();
+    expect(root().textContent).toContain('Signing in');
+    request.flush(response);
+    await render();
+    expect(TestBed.inject(Router).url).toBe('/login');
+    expect(root().textContent).toContain('You’re signed in as Learner');
+    http.expectNone('/api/auth/login');
+    http.expectNone('/api/workshops');
   });
   it('shows account status instead of a form when already signed in', async () => {
     TestBed.inject(Authentication)

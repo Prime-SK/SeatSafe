@@ -21,6 +21,12 @@ export interface LoginResult {
 @Injectable({ providedIn: 'root' })
 export class LoginApi {
   private readonly http = inject(HttpClient);
+  refresh(): Observable<LoginResult> {
+    return this.http.post<LoginResult>('/api/auth/refresh', {});
+  }
+  logout(): Observable<void> {
+    return this.http.post<void>('/api/auth/logout', {});
+  }
   login(input: LoginInput): Observable<LoginResult> {
     return this.http.post<LoginResult>('/api/auth/login', input);
   }

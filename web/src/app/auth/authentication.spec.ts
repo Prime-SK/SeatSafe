@@ -1,3 +1,4 @@
+import { sessionTestingProvider } from './session-testing.spec-helper';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -15,7 +16,7 @@ describe('In-memory authentication', () => {
   };
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [sessionTestingProvider, provideHttpClient(), provideHttpClientTesting()],
     });
     auth = TestBed.inject(Authentication);
     http = TestBed.inject(HttpTestingController);
@@ -53,7 +54,7 @@ describe('In-memory authentication', () => {
     expect(auth.authenticated()).toBe(true);
     vi.advanceTimersByTime(1);
     expect(auth.authenticated()).toBe(false);
-    expect(auth.account()).toBeNull();
+    expect(auth.account()).toEqual(response.user);
     http.expectNone('/api/auth/refresh');
     http.expectNone('/api/auth/logout');
   });
@@ -76,17 +77,19 @@ describe('In-memory authentication', () => {
     req.flush({ ...response, expiresIn: 1 });
     expect(auth.authenticated()).toBe(false);
   });
-  it('does not restore credentials when a new application instance starts', () => {
+  it('restores through a new request when a new application instance starts', () => {
     auth.login(input).subscribe();
     http.expectOne('/api/auth/login').flush(response);
     expect(auth.authenticated()).toBe(true);
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [sessionTestingProvider, provideHttpClient(), provideHttpClientTesting()],
     });
     auth = TestBed.inject(Authentication);
     http = TestBed.inject(HttpTestingController);
     expect(auth.account()).toBeNull();
-    http.expectNone('/api/auth/refresh');
+    auth.initialize().subscribe();
+    http.expectOne('/api/auth/refresh').flush(response);
+    expect(auth.account()).toEqual(response.user);
   });
 });

@@ -5,13 +5,22 @@
   >
   <nav aria-label="Main navigation">
     <a routerLink="/workshops" routerLinkActive="active" ariaCurrentWhenActive="page">Workshops</a>
+    @if (auth.restoreNeeded()) {
+      <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Account</a>
+    }
     @if (auth.account(); as account) {
+      <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Account</a>
       <p-tag severity="success" [value]="'Signed in as ' + account.displayName" />
-    } @else {
+    } @else if (auth.status() === 'checking') {
+      <span role="status">Checking session…</span>
+    } @else if (auth.status() !== 'signing-out' && auth.status() !== 'logout-failed') {
       <a routerLink="/login" routerLinkActive="active" ariaCurrentWhenActive="page">Sign in</a>
       <a routerLink="/register" routerLinkActive="active" ariaCurrentWhenActive="page"
         >Create account</a
       >
+    }
+    @defer (on immediate) {
+      <app-session-actions />
     }
   </nav>
 </header>

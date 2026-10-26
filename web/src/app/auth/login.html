@@ -1,10 +1,10 @@
 <div class="auth-layout">
   <header class="auth-intro">
     <p class="eyebrow">Your learning journey</p>
-    <h1>{{ auth.authenticated() ? 'Your account.' : 'Sign in.' }}</h1>
+    <h1>{{ auth.account() ? 'Your account.' : 'Sign in.' }}</h1>
     <p class="intro">
       {{
-        auth.authenticated()
+        auth.account()
           ? 'You’re ready to explore workshops.'
           : 'Welcome back. Sign in to your SeatSafe account.'
       }}
@@ -12,7 +12,26 @@
     <p class="auth-note">Browse workshop schedules and seat availability in one place.</p>
   </header>
   <section class="auth-panel" aria-label="Sign in">
-    @if (auth.account(); as account) {
+    @if (auth.status() === 'checking') {
+      <p-card><p role="status">Checking your session…</p></p-card>
+    } @else if (auth.loginPending() && state().status !== 'pending') {
+      <p-card><p role="status">Signing in… Please wait.</p></p-card>
+    } @else if (auth.status() === 'signing-out' || auth.status() === 'logout-failed') {
+      <p-card
+        ><h2>Sign out in progress</h2>
+        <p role="status">{{ auth.message() || 'Please wait while we sign you out.' }}</p>
+        <p>
+          Use the sign-out action above to retry if needed. You can still browse workshops.
+        </p></p-card
+      >
+    } @else if (!auth.supported) {
+      <p-card
+        ><p-message severity="warn" role="status"
+          >This browser cannot manage SeatSafe sessions. Please use a current browser.</p-message
+        >
+        <p><a routerLink="/workshops">Browse workshops</a></p></p-card
+      >
+    } @else if (auth.account(); as account) {
       <p-card
         ><p-message severity="success" role="status"
           >You’re signed in as {{ account.displayName }}.</p-message
@@ -20,6 +39,12 @@
         <p><a pButton routerLink="/workshops">Browse workshops</a></p></p-card
       >
     } @else {
+      @if (auth.message()) {
+        <p-message severity="warn" role="status">{{ auth.message() }}</p-message>
+      }
+      @if (auth.restoreNeeded()) {
+        <p><a routerLink="/account">Check your account</a></p>
+      }
       @let current = state();
       <p-card>
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
