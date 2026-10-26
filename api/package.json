@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
+    "db:seed:admin": "npm run build && node dist/database/seed-admin.js",
     "db:seed": "npm run build && node dist/database/seed.js",
     "test:db": "npm run build && vitest run --config ./vitest.config.database.ts",
     "db:migration:show": "npm run build && typeorm migration:show -d dist/database/data-source.js",

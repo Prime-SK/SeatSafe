@@ -50,7 +50,9 @@ export async function createTestApp() {
           ? refreshRepository
           : entity === AuthSessionEntity
             ? sessionRepository
-            : { createQueryBuilder: () => lockedQuery },
+            : entity === WorkshopEntity
+              ? workshopRepository
+              : { createQueryBuilder: () => lockedQuery },
       ),
   };
   const userRepository = {
@@ -62,7 +64,16 @@ export async function createTestApp() {
     verify: vi.fn().mockResolvedValue(false),
   };
   const records = createWorkshopFixtures();
+  const workshopQuery = {
+    setLock: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    getOne: vi.fn().mockResolvedValue(null),
+  };
   const workshopRepository = {
+    create: vi.fn().mockImplementation((value: unknown) => value),
+    insert: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({ affected: 1 }),
+    createQueryBuilder: vi.fn().mockReturnValue(workshopQuery),
     find: vi.fn().mockResolvedValue(records),
     findOneBy: vi
       .fn()
@@ -108,6 +119,7 @@ export async function createTestApp() {
     app,
     database,
     workshopRepository,
+    workshopQuery,
     userRepository,
     passwordHasher,
     loginQuery,

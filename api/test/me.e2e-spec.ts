@@ -232,7 +232,7 @@ describe('Protected current-account HTTP contract', () => {
       .expect(200);
     expect(result.body).toEqual(summary);
   });
-  it('keeps public routes public and documents only me as protected', async () => {
+  it('keeps public routes public and documents the protected endpoints', async () => {
     await request(fixture.app.getHttpServer())
       .get('/api/workshops')
       .expect(200);
@@ -260,7 +260,7 @@ describe('Protected current-account HTTP contract', () => {
       for (const operation of Object.values(
         operations as Record<string, { security?: unknown }>,
       )) {
-        if (path === '/api/auth/me')
+        if (path === '/api/auth/me' || path.startsWith('/api/admin/'))
           expect(operation.security).toEqual([{ 'access-token': [] }]);
         else if (path === '/api/auth/refresh')
           expect(operation.security).toEqual([{ 'refresh-cookie': [] }]);

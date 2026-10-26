@@ -11,6 +11,7 @@ import { LoginService } from './login.service.js';
 import { AuthSessionEntity } from './auth-session.entity.js';
 import { SessionAuthenticationService } from './session-authentication.service.js';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
+import { RolesGuard } from './roles.guard.js';
 import { AuthRefreshTokenEntity } from './auth-refresh-token.entity.js';
 import { RefreshTokenService } from './refresh-token.service.js';
 import { RefreshCookieService } from './refresh-cookie.service.js';
@@ -45,12 +46,19 @@ import {
     AccessTokenService,
     SessionAuthenticationService,
     JwtAuthGuard,
+    RolesGuard,
     RefreshTokenService,
     RefreshCookieService,
     LoginOriginGuard,
     SessionCredentialService,
     SessionCredentialFilter,
   ],
-  exports: [JwtAuthGuard],
+  // Route guards are instantiated in the consuming module; export their dependencies too.
+  exports: [
+    JwtAuthGuard,
+    RolesGuard,
+    AccessTokenService,
+    SessionAuthenticationService,
+  ],
 })
 export class AuthModule {}

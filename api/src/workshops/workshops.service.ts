@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WorkshopEntity } from './workshop.entity.js';
 import type { WorkshopResponse } from './workshop.types.js';
+import { toWorkshopResponse } from './workshop-response.js';
 
 @Injectable()
 export class WorkshopsService {
@@ -20,7 +21,7 @@ export class WorkshopsService {
     } catch {
       throw new ServiceUnavailableException('Database unavailable');
     }
-    return records.map((workshop) => this.toResponse(workshop));
+    return records.map(toWorkshopResponse);
   }
 
   async findById(id: string): Promise<WorkshopResponse | undefined> {
@@ -30,19 +31,6 @@ export class WorkshopsService {
     } catch {
       throw new ServiceUnavailableException('Database unavailable');
     }
-    return workshop === null ? undefined : this.toResponse(workshop);
-  }
-
-  private toResponse(workshop: WorkshopEntity): WorkshopResponse {
-    return {
-      // Map the public contract explicitly; persistence timestamps stay private.
-      id: workshop.id,
-      title: workshop.title,
-      capacity: workshop.capacity,
-      reservedSeats: workshop.reservedSeats,
-      registrationOpen: workshop.registrationOpen,
-      availableSeats: workshop.capacity - workshop.reservedSeats,
-      startsAt: workshop.startsAt.toISOString(),
-    };
+    return workshop === null ? undefined : toWorkshopResponse(workshop);
   }
 }
