@@ -2,6 +2,7 @@ import { Injectable, DestroyRef, NgZone, computed, inject, signal } from '@angul
 import { HttpErrorResponse, HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import {
   Observable,
+  Subject,
   catchError,
   defer,
   finalize,
@@ -22,6 +23,8 @@ const unavailable = () => new Error('Session is unavailable');
 const unauthorized = () => new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' });
 @Injectable({ providedIn: 'root' })
 export class Authentication {
+  private readonly logoutIntent = new Subject<void>();
+  readonly logoutStarted = this.logoutIntent.asObservable();
   private readonly api = inject(LoginApi);
   private readonly coordinator = inject(SessionCoordinator);
   private readonly zone = inject(NgZone);
@@ -135,6 +138,7 @@ export class Authentication {
     if (this.logoutFlight) return this.logoutFlight;
     if (!this.supported) return throwError(unavailable);
     // Publish intent before waiting for the cookie lock; late refresh responses must not restore identity.
+    this.logoutIntent.next();
     ++this.#generation;
     this.clear();
     this.#restoreNeeded.set(false);

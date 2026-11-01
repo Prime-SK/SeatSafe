@@ -1,0 +1,99 @@
+<p-card class="booking-panel">
+  <h2>Your booking</h2>
+  @let operation = store.operation(workshop().id);
+  @if (operation) {
+    <p-message
+      [severity]="
+        operation.kind === 'confirmed-cancel'
+          ? 'success'
+          : operation.kind === 'pending' || operation.kind === 'confirmed-reserve'
+            ? 'info'
+            : 'warn'
+      "
+      >{{
+        operation.kind === 'confirmed-reserve' && state().kind === 'ready'
+          ? 'Your booking status is up to date.'
+          : operation.message
+      }}</p-message
+    >
+  }
+  @if (auth.status() === 'checking' || store.pending(workshop().id)) {
+    @if (!store.pending(workshop().id) || !operation) {
+      <p role="status">
+        {{
+          store.pending(workshop().id) ? 'Your request is in progress.' : 'Checking your session…'
+        }}
+      </p>
+    }
+  } @else if (auth.status() === 'anonymous') {
+    @if (auth.restoreNeeded()) {
+      <p>Check your session before reserving a seat.</p>
+      <a pButton routerLink="/account">Check session</a>
+    } @else {
+      <p>Sign in to reserve one seat for yourself.</p>
+      <a pButton routerLink="/login">Sign in to reserve</a>
+    }
+  } @else if (auth.status() !== 'signed-in') {
+    <p-message severity="warn">{{
+      auth.message() || 'Booking actions are unavailable while your session is being checked.'
+    }}</p-message>
+    <a pButton severity="secondary" routerLink="/login">Go to sign in</a>
+  } @else {
+    @let current = state();
+    @if (current.kind === 'checking') {
+      <p role="status">Checking your current booking…</p>
+    } @else if (current.kind === 'error') {
+      <p-message severity="error">{{
+        operation?.kind === 'confirmed-reserve'
+          ? 'Your reservation request completed, but the current booking status could not be loaded.'
+          : current.message
+      }}</p-message>
+      <button pButton type="button" (click)="retry()">Retry booking check</button>
+    } @else {
+      @if (current.active) {
+        <p class="reserved">Your seat is reserved.</p>
+        <app-cancel-booking [booking]="current.active" [title]="workshop().title" />
+      } @else if (operation?.kind === 'confirmed-reserve') {
+        <p>
+          Your earlier reservation is no longer active. Start a new reservation if you would like a
+          seat.
+        </p>
+      }
+      @if (keyError()) {
+        <p-message severity="warn">{{ keyError() }}</p-message>
+      }
+      @if (operation?.kind === 'blocked' || resettable()) {
+        <button pButton type="button" severity="secondary" (click)="reset()">
+          Clear saved request
+        </button>
+      } @else if (!keyError() && (savedKey() || !current.active)) {
+        @if (savedKey()) {
+          <p>
+            An earlier reservation request needs checking. Retry it to recover its original result.
+          </p>
+          <button pButton type="button" (click)="reserve()">Retry reservation</button>
+        } @else if (!reason()) {
+          <button pButton type="button" (click)="reserve()">Reserve one seat</button>
+        } @else {
+          <p>{{ reason() }}</p>
+        }
+      }
+    }
+    @if (operation?.kind === 'uncertain-cancel' && operation?.bookingId) {
+      <button
+        pButton
+        type="button"
+        severity="secondary"
+        (click)="retryCancel(operation!.bookingId!)"
+      >
+        Retry cancellation
+      </button>
+    }
+    <a pButton severity="secondary" variant="text" routerLink="/bookings">My bookings</a>
+    @if (keyError() && !resettable()) {
+      <button pButton type="button" severity="secondary" (click)="retry()">
+        Retry storage check
+      </button>
+    }
+  }
+</p-card>

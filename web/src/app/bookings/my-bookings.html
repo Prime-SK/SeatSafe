@@ -1,0 +1,155 @@
+<header>
+  <p class="eyebrow">Your reservations</p>
+  <h1>My bookings</h1>
+  <p class="intro">
+    Your current seats and booking history. All dates are shown in Sri Lanka time.
+  </p>
+</header>
+@let notice = store.notice();
+@if (notice) {
+  <p-message
+    [severity]="
+      notice.kind === 'confirmed-cancel'
+        ? 'success'
+        : notice.kind === 'pending' || notice.kind === 'confirmed-reserve'
+          ? 'info'
+          : 'warn'
+    "
+    >{{
+      notice.kind === 'confirmed-reserve' && state().kind === 'ready'
+        ? 'Reservation request completed. Your current bookings are shown below.'
+        : notice.message
+    }}</p-message
+  >
+  @if (notice.kind === 'uncertain-cancel') {
+    <button
+      pButton
+      type="button"
+      severity="secondary"
+      [disabled]="store.pending(notice.workshopId) || auth.status() !== 'signed-in'"
+      (click)="retryCancel()"
+    >
+      Retry cancellation
+    </button>
+  }
+  @if (notice.kind === 'uncertain-reserve' || notice.kind === 'blocked') {
+    <a pButton severity="secondary" [routerLink]="['/workshops', notice.workshopId]"
+      >Check reservation</a
+    >
+  }
+}
+@if (auth.status() !== 'signed-in' && auth.status() !== 'checking') {
+  <section class="state-panel">
+    <p-message severity="warn">{{
+      auth.message() || 'Sign in again to view your bookings.'
+    }}</p-message
+    ><a pButton routerLink="/login">Go to sign in</a>
+  </section>
+} @else {
+  @let current = state();
+  @switch (current.kind) {
+    @case ('loading') {
+      @if (notice?.kind !== 'pending') {
+        <p role="status">
+          {{ store.anyPending() ? 'Updating your bookings…' : 'Loading your bookings…' }}
+        </p>
+      }
+      <div class="booking-grid" aria-hidden="true">
+        @for (item of [1, 2]; track item) {
+          <p-card
+            ><p-skeleton width="80%" height="1.5rem" /><p-skeleton width="65%" /><p-skeleton
+              height="5rem"
+          /></p-card>
+        }
+      </div>
+    }
+    @case ('error') {
+      <section class="state-panel">
+        <p-message severity="error">{{ current.message }}</p-message
+        ><button pButton type="button" (click)="retry()">Retry bookings</button
+        ><a pButton severity="secondary" variant="text" routerLink="/workshops">Browse workshops</a>
+      </section>
+    }
+    @case ('ready') {
+      <div [attr.aria-busy]="store.anyPending()">
+        @if (current.data.items.length === 0) {
+          <section class="state-panel">
+            <h2>{{ current.data.total ? 'No bookings on this page' : 'No bookings yet' }}</h2>
+            <p>
+              {{
+                current.data.total
+                  ? 'Choose another page to see your booking history.'
+                  : 'Explore the workshops and reserve a seat when you find one you like.'
+              }}
+            </p>
+            <a pButton routerLink="/workshops">Browse workshops</a>
+          </section>
+        } @else {
+          <p class="result-count">
+            {{ current.data.total }} {{ current.data.total === 1 ? 'booking' : 'bookings' }} in your
+            history
+          </p>
+          <div class="booking-grid">
+            @for (item of current.data.items; track item.id) {
+              <p-card>
+                <div class="booking-heading">
+                  <h2>{{ item.workshop.title }}</h2>
+                  <p-tag [severity]="item.status === 'ACTIVE' ? 'success' : 'secondary'">{{
+                    item.status === 'ACTIVE' ? 'Seat reserved' : 'Cancelled'
+                  }}</p-tag>
+                </div>
+                <p>
+                  <time [attr.datetime]="item.workshop.startsAt">{{
+                    item.workshop.startsAt | workshopDate
+                  }}</time
+                  ><span class="timezone">Sri Lanka time (UTC+05:30)</span>
+                </p>
+                <dl>
+                  <div>
+                    <dt>Booked</dt>
+                    <dd>
+                      <time [attr.datetime]="item.createdAt">{{
+                        item.createdAt | workshopDate
+                      }}</time>
+                    </dd>
+                  </div>
+                  @if (item.cancelledAt) {
+                    <div>
+                      <dt>Cancelled</dt>
+                      <dd>
+                        <time [attr.datetime]="item.cancelledAt">{{
+                          item.cancelledAt | workshopDate
+                        }}</time>
+                      </dd>
+                    </div>
+                  }
+                </dl>
+                <div class="booking-actions">
+                  <a
+                    pButton
+                    severity="secondary"
+                    variant="outlined"
+                    [routerLink]="['/workshops', item.workshopId]"
+                    >View workshop</a
+                  >
+                  @if (item.status === 'ACTIVE') {
+                    <app-cancel-booking [booking]="item" [title]="item.workshop.title" />
+                  }
+                </div>
+              </p-card>
+            }
+          </div>
+        }
+        <p-paginator
+          [first]="(current.data.page - 1) * current.data.limit"
+          [rows]="current.data.limit"
+          [totalRecords]="current.data.total"
+          [rowsPerPageOptions]="[10, 25, 50, 100]"
+          [pageLinkSize]="3"
+          [showFirstLastIcon]="false"
+          (onPageChange)="pageChanged($event)"
+        />
+      </div>
+    }
+  }
+}

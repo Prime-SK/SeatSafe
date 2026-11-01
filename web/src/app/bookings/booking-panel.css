@@ -1,0 +1,29 @@
+:host {
+  display: block;
+  margin-top: 1.5rem;
+}
+h2 {
+  margin-bottom: 1rem;
+}
+p-message {
+  display: block;
+  margin-bottom: 1rem;
+}
+button,
+a,
+app-cancel-booking {
+  margin: 0 0.75rem 0.75rem 0;
+}
+.reserved {
+  color: var(--accent);
+  font-weight: 650;
+}
+@media (max-width: 389px) {
+  button,
+  a,
+  app-cancel-booking {
+    display: block;
+    width: 100%;
+    margin-right: 0;
+  }
+}

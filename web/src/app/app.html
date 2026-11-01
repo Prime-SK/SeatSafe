@@ -9,6 +9,9 @@
       <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Account</a>
     }
     @if (auth.account(); as account) {
+      <a routerLink="/bookings" routerLinkActive="active" ariaCurrentWhenActive="page"
+        >My bookings</a
+      >
       @if (account.role === 'ADMIN') {
         <a routerLink="/admin/workshops" routerLinkActive="active" ariaCurrentWhenActive="page"
           >Manage workshops</a

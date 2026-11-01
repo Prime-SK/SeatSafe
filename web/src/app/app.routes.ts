@@ -3,6 +3,12 @@ import { authGuard } from './auth/auth-guard';
 
 export const routes: Routes = [
   {
+    path: 'bookings',
+    canActivate: [authGuard],
+    loadComponent: () => import('./bookings/my-bookings').then((m) => m.MyBookings),
+    title: 'My bookings | SeatSafe',
+  },
+  {
     path: 'admin',
     loadChildren: () => import('./admin/admin.routes').then((m) => m.adminRoutes),
   },

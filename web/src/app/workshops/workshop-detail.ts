@@ -1,4 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
+import { Bookings } from '../bookings/bookings';
+import { BookingPanel } from '../bookings/booking-panel';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -37,16 +39,27 @@ type DetailState =
     TagModule,
     MessageModule,
     SkeletonModule,
+    BookingPanel,
   ],
   templateUrl: './workshop-detail.html',
   styleUrl: './workshop-detail.css',
 })
 export class WorkshopDetail {
+  private readonly bookings = inject(Bookings);
   private readonly api = inject(WorkshopsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly reload = new Subject<void>();
   protected readonly state = signal<DetailState>({ status: 'loading' });
   constructor() {
+    let previous = this.bookings.revision();
+    effect(() => {
+      const revision = this.bookings.revision(),
+        pending = this.bookings.anyPending();
+      if (!pending && revision !== previous) {
+        previous = revision;
+        this.reload.next();
+      }
+    });
     combineLatest([
       this.route.paramMap.pipe(
         map((params) => params.get('id') ?? ''),
