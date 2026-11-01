@@ -11,11 +11,13 @@ export class AdminAccess {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(Authentication);
   private readonly router = inject(Router);
-  readonly message = signal('Administrator access is required to manage workshops.');
+  readonly message = signal('Administrator access is required to manage SeatSafe.');
   readonly retryable = signal(false);
   private destination = '/admin/workshops';
   check(destination: string) {
-    this.destination = destination.startsWith('/admin/workshops')
+    this.destination = /^\/admin\/(?:users|workshops(?:\/new|\/[^/?#]+\/edit)?)(?:\?[^#]*)?$/.test(
+      destination,
+    )
       ? destination
       : '/admin/workshops';
     return this.auth.ensureSession().pipe(
@@ -52,7 +54,7 @@ export class AdminAccess {
   }
   denied(): void {
     this.retryable.set(false);
-    this.message.set('Your account does not have permission to manage workshops.');
+    this.message.set('Your account does not have permission to manage SeatSafe.');
   }
   permissionLost(): void {
     this.denied();

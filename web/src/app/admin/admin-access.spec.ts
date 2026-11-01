@@ -63,4 +63,27 @@ describe('Administrator access', () => {
     http.expectOne('/api/auth/me').flush({ role: 'ADMIN' });
     expect(auth.updateProfile).not.toHaveBeenCalled();
   });
+  it.each(['/admin/users?page=2&search=learner', '/admin/workshops/opaque/edit'])(
+    'preserves allowlisted retry destination %s',
+    (destination) => {
+      access.check(destination).subscribe();
+      http.expectOne('/api/auth/me').flush({}, { status: 503, statusText: 'Unavailable' });
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+      access.retry();
+      expect(navigate).toHaveBeenCalledWith(destination);
+    },
+  );
+  it.each([
+    'https://example.test/admin/users',
+    '//example.test/admin/users',
+    '/admin/users-extra',
+    '/admin/access',
+    '/admin/workshops-extra',
+  ])('rejects unsupported retry destination %s', (destination) => {
+    access.check(destination).subscribe();
+    http.expectOne('/api/auth/me').flush({}, { status: 503, statusText: 'Unavailable' });
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    access.retry();
+    expect(navigate).toHaveBeenCalledWith('/admin/workshops');
+  });
 });

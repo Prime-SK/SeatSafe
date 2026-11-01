@@ -1,0 +1,110 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.intro,
+.email,
+.protected,
+small {
+  color: var(--muted);
+}
+.filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+  gap: 1.25rem;
+  margin-block: 1.75rem;
+}
+.filters label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+small {
+  display: block;
+  margin-top: 0.5rem;
+}
+.filter-actions {
+  grid-column: 1/-1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.email {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.9375rem;
+  margin-top: 0.5rem;
+}
+strong,
+h2,
+.protected {
+  overflow-wrap: anywhere;
+}
+.result-count {
+  margin-block: 1.25rem;
+}
+p-message {
+  display: block;
+  margin-block: 1rem;
+}
+td,
+th {
+  vertical-align: top;
+}
+th:first-child {
+  width: 40%;
+}
+th:nth-child(2),
+th:nth-child(3) {
+  width: 15%;
+}
+th:last-child {
+  width: 30%;
+}
+.cards,
+.skeletons {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.25rem;
+}
+.skeletons {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.mobile {
+  display: none;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+h2 {
+  font-size: 1.125rem;
+  margin: 0;
+}
+.waiting {
+  padding-block: 1rem;
+}
+p-paginator {
+  margin-top: 1.5rem;
+}
+@media (max-width: 767px) {
+  .filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktop {
+    display: none;
+  }
+  .mobile {
+    display: grid;
+  }
+  .skeletons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cards button {
+    width: 100%;
+  }
+  .filter-actions button {
+    flex: 1 1 auto;
+  }
+}

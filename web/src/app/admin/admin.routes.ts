@@ -4,6 +4,12 @@ import { installAdminTheme } from './admin-theme';
 installAdminTheme();
 export const adminRoutes: Routes = [
   {
+    path: 'users',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./manage-users').then((m) => m.ManageUsers),
+    title: 'Manage users | SeatSafe',
+  },
+  {
     path: 'access',
     loadComponent: () => import('./access-page').then((m) => m.AccessPage),
     title: 'Administrator access | SeatSafe',

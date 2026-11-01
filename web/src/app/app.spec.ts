@@ -38,28 +38,34 @@ describe('App', () => {
     await fixture.whenStable();
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('main h1'));
   });
-  it('shows account presentation after login instead of anonymous links', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeTruthy();
-    TestBed.inject(Authentication)
-      .login({ email: 'learner@example.test', password: 'unchanged' })
-      .subscribe();
-    TestBed.inject(HttpTestingController)
-      .expectOne('/api/auth/login')
-      .flush({
-        accessToken: 'private-memory-fixture',
-        tokenType: 'Bearer',
-        expiresIn: 900,
-        user: { id: 'user', displayName: 'Learner', email: 'learner@example.test', role: 'USER' },
-      });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Signed in as Learner');
-    expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('a[href="/register"]')).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('private-memory-fixture');
-    TestBed.inject(HttpTestingController).verify();
-  });
+  it.each(['USER', 'ADMIN'] as const)(
+    'shows account presentation and appropriate management links for %s',
+    (role) => {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeTruthy();
+      TestBed.inject(Authentication)
+        .login({ email: 'learner@example.test', password: 'unchanged' })
+        .subscribe();
+      TestBed.inject(HttpTestingController)
+        .expectOne('/api/auth/login')
+        .flush({
+          accessToken: 'private-memory-fixture',
+          tokenType: 'Bearer',
+          expiresIn: 900,
+          user: { id: 'user', displayName: 'Learner', email: 'learner@example.test', role },
+        });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Signed in as Learner');
+      expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('a[href="/register"]')).toBeNull();
+      expect(!!fixture.nativeElement.querySelector('a[href="/admin/users"]')).toBe(
+        role === 'ADMIN',
+      );
+      expect(fixture.nativeElement.textContent).not.toContain('private-memory-fixture');
+      TestBed.inject(HttpTestingController).verify();
+    },
+  );
 
   it('should create the app', () => {
     const fixture = TestBed.createComponent(App);

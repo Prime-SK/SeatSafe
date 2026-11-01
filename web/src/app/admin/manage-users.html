@@ -1,0 +1,236 @@
+<h1>Manage users</h1>
+<p class="intro">Search accounts and manage access. Administrator accounts are protected.</p>
+<form [formGroup]="form" (ngSubmit)="apply()" class="filters" novalidate>
+  <div class="search-field">
+    <label pLabel for="user-search">Search name or email</label>
+    <input
+      pInputText
+      id="user-search"
+      formControlName="search"
+      [fluid]="true"
+      [attr.aria-invalid]="
+        form.controls.search.invalid && (form.controls.search.touched || attempted())
+          ? 'true'
+          : null
+      "
+      [invalid]="form.controls.search.invalid && (form.controls.search.touched || attempted())"
+      [attr.aria-describedby]="
+        form.controls.search.invalid && (form.controls.search.touched || attempted())
+          ? 'search-help search-error'
+          : 'search-help'
+      "
+    />
+    <small id="search-help">Up to 200 characters. Search text is matched literally.</small>
+    @if (form.controls.search.invalid && (form.controls.search.touched || attempted())) {
+      <p-message id="search-error" severity="error" size="small" variant="simple"
+        >Search must contain at most 200 characters.</p-message
+      >
+    }
+  </div>
+  <div>
+    <label pLabel for="user-status" id="user-status-label">Account status</label
+    ><p-select
+      inputId="user-status"
+      ariaLabelledBy="user-status-label"
+      formControlName="status"
+      [options]="statuses"
+      optionLabel="label"
+      optionValue="value"
+      [fluid]="true"
+    />
+  </div>
+  <div class="filter-actions">
+    <button pButton type="submit">Apply filters</button
+    ><button pButton type="button" severity="secondary" variant="outlined" (click)="clear()">
+      Clear filters
+    </button>
+  </div>
+</form>
+@if (store.notice(); as notice) {
+  <p-message
+    [severity]="
+      notice.kind === 'confirmed'
+        ? 'success'
+        : notice.kind === 'pending'
+          ? 'info'
+          : notice.kind === 'uncertain'
+            ? 'warn'
+            : 'error'
+    "
+    >{{ notice.message }}</p-message
+  >
+}
+@if (store.needsInspection()) {
+  <p-button
+    label="Reload users"
+    severity="secondary"
+    (onClick)="load()"
+    [disabled]="store.pending()"
+  />
+}
+@if (state(); as view) {
+  @if (view.kind === 'loading') {
+    <span role="status" class="visually-hidden">Loading users…</span>
+    <div class="skeletons" aria-hidden="true">
+      @for (item of [1, 2, 3]; track item) {
+        <p-card><p-skeleton height="10rem" /></p-card>
+      }
+    </div>
+  } @else if (view.kind === 'waiting') {
+    @if (auth.status() === 'anonymous') {
+      <p>Please sign in again to manage users.</p>
+      <a pButton routerLink="/login">Sign in</a>
+    } @else if (auth.status() === 'unavailable') {
+      <p>{{ auth.message() }}</p>
+    } @else {
+      <p class="waiting">
+        {{
+          store.pending()
+            ? 'The account change is in progress. You can continue browsing.'
+            : store.needsInspection()
+              ? 'Reload current users before making another status change.'
+              : 'Checking administrator access…'
+        }}
+      </p>
+    }
+  } @else if (view.kind === 'error') {
+    <section class="state-panel">
+      <h2>Users could not be loaded</h2>
+      <p>{{ view.message }}</p>
+      <p-button label="Reload users" (onClick)="load()" />
+    </section>
+  } @else if (view.kind === 'ready') {
+    <p class="result-count" role="status">
+      {{ view.page.total }} {{ view.page.total === 1 ? 'account' : 'accounts'
+      }}{{
+        query().search || query().status
+          ? view.page.total === 1
+            ? ' matches your filters'
+            : ' match your filters'
+          : ' in SeatSafe'
+      }}
+    </p>
+    @if (!view.page.items.length) {
+      <section class="state-panel">
+        <h2>
+          {{
+            view.page.total
+              ? 'No accounts on this page'
+              : query().search || query().status
+                ? 'No matching accounts'
+                : 'No accounts yet'
+          }}
+        </h2>
+        <p>
+          {{
+            view.page.total
+              ? 'Choose another page to view current accounts.'
+              : query().search || query().status
+                ? 'Try another search or clear your filters.'
+                : 'Accounts will appear here after registration.'
+          }}
+        </p>
+        @if (query().search || query().status) {
+          <p-button label="Clear filters" severity="secondary" (onClick)="clear()" />
+        }
+      </section>
+    } @else {
+      <div class="desktop">
+        <p-table
+          [value]="view.page.items"
+          dataKey="id"
+          [tableStyle]="{ 'table-layout': 'fixed', width: '100%' }"
+          ><ng-template #header
+            ><tr>
+              <th scope="col">Account</th>
+              <th scope="col">Role</th>
+              <th scope="col">Status</th>
+              <th scope="col">Action</th>
+            </tr></ng-template
+          ><ng-template #body let-user
+            ><tr>
+              <td>
+                <strong>{{ user.displayName }}</strong
+                ><span class="email">{{ user.email }}</span>
+              </td>
+              <td><p-tag [value]="user.role" severity="secondary" /></td>
+              <td>
+                <p-tag
+                  [value]="user.isEnabled ? 'Enabled' : 'Disabled'"
+                  [severity]="user.isEnabled ? 'success' : 'secondary'"
+                />
+              </td>
+              <td>
+                @if (user.role === 'ADMIN') {
+                  <span class="protected">Protected administrator</span>
+                } @else {
+                  <button
+                    pButton
+                    type="button"
+                    [severity]="user.isEnabled ? 'danger' : 'primary'"
+                    variant="outlined"
+                    [disabled]="!store.canAct()"
+                    (click)="change(user, $event)"
+                    [attr.aria-label]="
+                      (user.isEnabled ? 'Disable account: ' : 'Enable account: ') + user.email
+                    "
+                  >
+                    {{ user.isEnabled ? 'Disable account' : 'Enable account' }}
+                  </button>
+                }
+              </td>
+            </tr></ng-template
+          ></p-table
+        >
+      </div>
+      <div class="mobile cards">
+        @for (user of view.page.items; track user.id) {
+          <p-card
+            ><h2>{{ user.displayName }}</h2>
+            <p class="email">{{ user.email }}</p>
+            <div class="tags">
+              <p-tag [value]="user.role" severity="secondary" /><p-tag
+                [value]="user.isEnabled ? 'Enabled' : 'Disabled'"
+                [severity]="user.isEnabled ? 'success' : 'secondary'"
+              />
+            </div>
+            @if (user.role === 'ADMIN') {
+              <p class="protected">Protected administrator</p>
+            } @else {
+              <button
+                pButton
+                type="button"
+                [severity]="user.isEnabled ? 'danger' : 'primary'"
+                variant="outlined"
+                [disabled]="!store.canAct()"
+                (click)="change(user, $event)"
+                [attr.aria-label]="
+                  (user.isEnabled ? 'Disable account: ' : 'Enable account: ') + user.email
+                "
+              >
+                {{ user.isEnabled ? 'Disable account' : 'Enable account' }}
+              </button>
+            }
+          </p-card>
+        }
+      </div>
+    }
+    @if (view.page.total > 0) {
+      <p-paginator
+        [first]="(query().page - 1) * query().limit"
+        [rows]="query().limit"
+        [totalRecords]="view.page.total"
+        [rowsPerPageOptions]="[10, 25, 50, 100]"
+        (onPageChange)="pageChanged($event)"
+      />
+    }
+  }
+}
+<p-confirmdialog
+  [style]="{ width: 'min(30rem, calc(100vw - 2rem))' }"
+  [draggable]="false"
+  [closable]="true"
+  [closeOnEscape]="true"
+  defaultFocus="reject"
+  (onHide)="restoreFocus()"
+/>
