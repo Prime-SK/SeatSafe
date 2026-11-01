@@ -5,6 +5,7 @@ import { DOCUMENT } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SessionActions } from './auth/session-actions';
 import { TagModule } from 'primeng/tag';
+import { LabClient } from './admin/lab-client';
 
 @Component({
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TagModule, SessionActions],
@@ -15,6 +16,7 @@ import { TagModule } from 'primeng/tag';
 export class App {
   protected readonly router = inject(Router);
   protected readonly auth = inject(Authentication);
+  protected readonly lab = inject(LabClient);
   private readonly document = inject(DOCUMENT);
   constructor() {
     this.auth.initialize().subscribe();

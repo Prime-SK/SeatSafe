@@ -57,6 +57,15 @@ describe('App', () => {
         });
       fixture.detectChanges();
       expect(fixture.nativeElement.textContent).toContain('Signed in as Learner');
+      if (role === 'ADMIN') {
+        TestBed.inject(HttpTestingController)
+          .expectOne('/api/admin/reliability/capabilities')
+          .flush({
+            enabled: true,
+            scenarios: ['seat-contention', 'matching-key', 'different-keys'],
+          });
+        fixture.detectChanges();
+      }
       expect(fixture.nativeElement.querySelector('a[href="/login"]')).toBeNull();
       expect(fixture.nativeElement.querySelector('a[href="/register"]')).toBeNull();
       expect(!!fixture.nativeElement.querySelector('a[href="/admin/users"]')).toBe(

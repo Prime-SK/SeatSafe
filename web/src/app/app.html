@@ -19,6 +19,11 @@
         <a routerLink="/admin/users" routerLinkActive="active" ariaCurrentWhenActive="page"
           >Manage users</a
         >
+        @if (lab.enabled()) {
+          <a routerLink="/admin/reliability" routerLinkActive="active" ariaCurrentWhenActive="page"
+            >Reliability lab</a
+          >
+        }
       }
       <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Account</a>
       <p-tag severity="success" [value]="'Signed in as ' + account.displayName" />

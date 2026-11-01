@@ -4,9 +4,51 @@ import { RegistrationError } from './auth/registration-error.js';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { LabService } from './reliability/lab.service.js';
 
 // Startup and HTTP tests use the same route and documentation configuration.
 export function configureApp(app: INestApplication): void {
+  const labJson = json({ strict: false });
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    if (!request.path.startsWith('/api/admin/reliability/')) return next();
+    response.setHeader('Cache-Control', 'no-store');
+    if (!request.path.startsWith('/api/admin/reliability/runs')) return next();
+    if (
+      !app.get(LabService).enabled() ||
+      !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(
+        request.socket.remoteAddress ?? '',
+      )
+    ) {
+      response.status(404).json({
+        statusCode: 404,
+        code: 'LAB_UNAVAILABLE',
+        message: 'Reliability lab is unavailable',
+      });
+      return;
+    }
+    if (request.method !== 'POST') return next();
+    const reject = () =>
+      response.status(400).json({
+        statusCode: 400,
+        code: 'VALIDATION_FAILED',
+        message: 'Invalid lab request',
+        fieldErrors: {
+          body: ['Supply a run UUID and supported scenario only'],
+        },
+      });
+    if (
+      (Number(request.headers['content-length'] ?? 0) > 0 ||
+        request.headers['transfer-encoding'] !== undefined) &&
+      !request.is('application/json')
+    ) {
+      reject();
+      return;
+    }
+    labJson(request, response, (error?: unknown) => {
+      if (error) reject();
+      else next();
+    });
+  });
   const userStatusJson = json({ strict: false });
   app.use((request: Request, response: Response, next: NextFunction) => {
     if (

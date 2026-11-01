@@ -7,6 +7,47 @@ describe('Application configuration', () => {
     DB_USER: 'fixture',
     DB_PASSWORD: 'fixture',
   };
+  it('keeps the lab disabled by default and independent from migration configuration', () => {
+    expect(validateApplicationEnvironment(base).RELIABILITY_LAB_ENABLED).toBe(
+      false,
+    );
+    expect(
+      validateEnvironment({ ...base, RELIABILITY_LAB_ENABLED: 'invalid' }),
+    ).not.toHaveProperty('RELIABILITY_LAB_ENABLED');
+    expect(
+      validateApplicationEnvironment({
+        ...base,
+        DB_NAME: 'seatsafe_dev',
+        RELIABILITY_LAB_ENABLED: 'true',
+      }).RELIABILITY_LAB_ENABLED,
+    ).toBe(true);
+  });
+  it.each([true, 'TRUE', '1', '', null])(
+    'rejects non-strict lab flags %s',
+    (value) => {
+      expect(() =>
+        validateApplicationEnvironment({
+          ...base,
+          RELIABILITY_LAB_ENABLED: value,
+        }),
+      ).toThrow('RELIABILITY_LAB_ENABLED');
+    },
+  );
+  it.each([
+    { NODE_ENV: 'production' },
+    { NODE_ENV: 'test' },
+    { DB_HOST: 'remote.example.test' },
+    { DB_NAME: 'another_database' },
+  ])('refuses enabled lab for incompatible settings %j', (change) => {
+    expect(() =>
+      validateApplicationEnvironment({
+        ...base,
+        DB_NAME: 'seatsafe_dev',
+        RELIABILITY_LAB_ENABLED: 'true',
+        ...change,
+      }),
+    ).toThrow('Reliability lab requires');
+  });
   it('retains the application secret exactly for ConfigService and later JWT validation', () => {
     const secret = ' public-test-secret-that-is-long-enough ';
     expect(

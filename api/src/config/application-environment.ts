@@ -4,6 +4,21 @@ import { validateEnvironment } from './environment.js';
 // The migration CLI continues to use validateEnvironment without requiring JWT.
 export function validateApplicationEnvironment(input: Record<string, unknown>) {
   const environment = validateEnvironment(input);
+  const lab = input.RELIABILITY_LAB_ENABLED;
+  if (lab !== undefined && lab !== 'true' && lab !== 'false')
+    throw new Error('RELIABILITY_LAB_ENABLED must be true or false');
+  const labEnabled = lab === 'true';
+  if (
+    labEnabled &&
+    (environment.NODE_ENV !== 'development' ||
+      !['localhost', '127.0.0.1', '::1', '[::1]'].includes(
+        environment.DB_HOST.toLowerCase(),
+      ) ||
+      environment.DB_NAME !== 'seatsafe_dev')
+  )
+    throw new Error(
+      'Reliability lab requires development mode and local seatsafe_dev',
+    );
   const configured = input.AUTH_ALLOWED_ORIGINS;
   if (environment.NODE_ENV === 'production' && configured === undefined)
     throw new Error(
@@ -38,6 +53,7 @@ export function validateApplicationEnvironment(input: Record<string, unknown>) {
   return {
     ...environment,
     JWT_SECRET: input.JWT_SECRET,
+    RELIABILITY_LAB_ENABLED: labEnabled,
     AUTH_ALLOWED_ORIGINS: [...new Set(origins)],
   };
 }

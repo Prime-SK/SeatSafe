@@ -15,11 +15,12 @@ export class AdminAccess {
   readonly retryable = signal(false);
   private destination = '/admin/workshops';
   check(destination: string) {
-    this.destination = /^\/admin\/(?:users|workshops(?:\/new|\/[^/?#]+\/edit)?)(?:\?[^#]*)?$/.test(
-      destination,
-    )
-      ? destination
-      : '/admin/workshops';
+    this.destination =
+      /^\/admin\/(?:reliability|users|workshops(?:\/new|\/[^/?#]+\/edit)?)(?:\?[^#]*)?$/.test(
+        destination,
+      )
+        ? destination
+        : '/admin/workshops';
     return this.auth.ensureSession().pipe(
       switchMap(() => {
         const generation = this.auth.currentGeneration();

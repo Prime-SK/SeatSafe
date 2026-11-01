@@ -1,0 +1,74 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.intro,
+.footnote {
+  color: var(--muted);
+  max-width: 75ch;
+}
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+p-message {
+  display: block;
+  margin-block: 1rem;
+}
+p-card {
+  display: block;
+  margin-block: 1.5rem;
+}
+h2 {
+  margin-top: 2rem;
+}
+.run-id,
+dd,
+td {
+  overflow-wrap: anywhere;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-block: 1.5rem;
+}
+.metrics div {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+}
+dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+dd {
+  margin: 0.5rem 0 0;
+  font-weight: 600;
+}
+.mobile {
+  display: none;
+}
+.footnote {
+  margin-top: 2rem;
+}
+@media (max-width: 767px) {
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desktop {
+    display: none;
+  }
+  .mobile {
+    display: grid;
+    gap: 1rem;
+  }
+  .mobile p-card {
+    margin: 0;
+  }
+  h3 {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+}

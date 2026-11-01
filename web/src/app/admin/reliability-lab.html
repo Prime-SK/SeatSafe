@@ -1,0 +1,148 @@
+<h1>Reliability lab</h1>
+<p class="intro">
+  Repeatable experiments with disposable synthetic data. These are internal booking-service
+  attempts, not HTTP reservation requests or a performance benchmark.
+</p>
+@if (auth.account()?.role !== 'ADMIN') {
+  <p-message severity="warn">Administrator access is required.</p-message>
+} @else if (lab.availability() === 'checking') {
+  <p role="status">Checking local lab availability…</p>
+} @else if (lab.availability() === 'disabled') {
+  <p-message severity="info"
+    >The reliability lab is available only in an enabled local development session.</p-message
+  >
+} @else if (lab.availability() === 'error') {
+  <p-message severity="warn">Lab availability could not be checked.</p-message
+  ><p-button label="Check availability" (onClick)="lab.checkAvailability()" />
+} @else {
+  <p-card
+    ><label pLabel for="lab-scenario" id="lab-scenario-label">Demonstration</label
+    ><p-select
+      inputId="lab-scenario"
+      ariaLabelledBy="lab-scenario-label"
+      [options]="scenarios"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="selected()"
+      (ngModelChange)="selected.set($event)"
+      [fluid]="true"
+      [disabled]="lab.pending() || lab.report()?.status === 'running'" />
+    <p>{{ expected[selected()] }}</p>
+    <p-button
+      label="Run selected demonstration"
+      (onClick)="start()"
+      [disabled]="lab.pending() || lab.uncertain() || lab.report()?.status === 'running'"
+  /></p-card>
+  @if (localMessage()) {
+    <p-message severity="warn">{{ localMessage() }}</p-message>
+  }
+  @if (lab.message()) {
+    <p-message severity="warn">{{ lab.message() }}</p-message>
+    @if (runId()) {
+      <p-button
+        label="Check status"
+        severity="secondary"
+        (onClick)="check()"
+        [disabled]="lab.pending()"
+      />
+    }
+  }
+  @if (lab.pending()) {
+    <p role="status">Starting the isolated run…</p>
+  }
+  @if (lab.report(); as run) {
+    <section aria-labelledby="run-heading">
+      <h2 id="run-heading">Observed run</h2>
+      <p class="run-id">Run {{ run.runId }}</p>
+      <p-tag
+        [value]="run.status"
+        [severity]="
+          run.status === 'completed' ? 'success' : run.status === 'running' ? 'info' : 'warn'
+        "
+      />
+      <p>{{ run.message }}</p>
+      <p><strong>Expected:</strong> {{ expected[run.scenario] }}</p>
+      @if (run.status === 'running') {
+        <p role="status">Stage: {{ run.stage }}</p>
+        <p-progressbar mode="indeterminate" ariaLabel="Lab run in progress" />
+      }
+      <dl class="metrics">
+        <div>
+          <dt>Attempts / workers</dt>
+          <dd>{{ run.requested }} / {{ run.workers }}</dd>
+        </div>
+        <div>
+          <dt>Successes</dt>
+          <dd>{{ run.successes }}</dd>
+        </div>
+        <div>
+          <dt>Full / already booked</dt>
+          <dd>
+            {{ run.conflicts['WORKSHOP_FULL'] || 0 }} / {{ run.conflicts['ALREADY_BOOKED'] || 0 }}
+          </dd>
+        </div>
+        <div>
+          <dt>Timeouts / unexpected / undispatched</dt>
+          <dd>{{ run.timeouts }} / {{ run.unexpected }} / {{ run.undispatched }}</dd>
+        </div>
+        <div>
+          <dt>Active bookings / reserved seats</dt>
+          <dd>{{ run.activeBookings ?? '—' }} / {{ run.reservedSeats ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>Outcome records / unique bookings</dt>
+          <dd>{{ run.idempotencyRecords ?? '—' }} / {{ run.uniqueBookings }}</dd>
+        </div>
+        <div>
+          <dt>Database / isolation</dt>
+          <dd>{{ run.postgres ?? 'Preparing' }} / {{ run.isolation ?? 'Preparing' }}</dd>
+        </div>
+        <div>
+          <dt>Cleanup</dt>
+          <dd>{{ run.cleanup }}</dd>
+        </div>
+      </dl>
+      <p>
+        Capacity: {{ run.capacity }}. Invariants:
+        {{ run.invariantsPassed ? 'passed' : 'not yet passed' }}. Matching success snapshots:
+        {{ run.matchingSnapshots ? 'yes' : 'no' }}.
+      </p>
+      @if (run.attempts.length) {
+        <div class="desktop">
+          <p-table [value]="run.attempts" [tableStyle]="{ width: '100%', 'table-layout': 'fixed' }"
+            ><ng-template #header
+              ><tr>
+                <th>Attempt</th>
+                <th>Synthetic user</th>
+                <th>Outcome</th>
+                <th>Business code</th>
+              </tr></ng-template
+            ><ng-template #body let-attempt
+              ><tr>
+                <td>{{ attempt.attempt }}</td>
+                <td>{{ attempt.userLabel }}</td>
+                <td>{{ attempt.outcome }}</td>
+                <td>{{ attempt.code || '—' }}</td>
+              </tr></ng-template
+            ></p-table
+          >
+        </div>
+        <div class="mobile">
+          @for (attempt of run.attempts; track attempt.attempt) {
+            <p-card
+              ><h3>Attempt {{ attempt.attempt }}</h3>
+              <p>{{ attempt.userLabel }} · {{ attempt.outcome }}</p>
+              @if (attempt.code) {
+                <p>{{ attempt.code }}</p>
+              }
+            </p-card>
+          }
+        </div>
+      }
+    </section>
+  }
+  <p class="footnote">
+    Reports are kept temporarily in this API process and disappear on restart. Leaving this page
+    stops polling, while admitted server work continues through cleanup.
+  </p>
+}

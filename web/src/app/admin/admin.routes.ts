@@ -4,6 +4,12 @@ import { installAdminTheme } from './admin-theme';
 installAdminTheme();
 export const adminRoutes: Routes = [
   {
+    path: 'reliability',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./reliability-lab').then((m) => m.ReliabilityLab),
+    title: 'Reliability lab | SeatSafe',
+  },
+  {
     path: 'users',
     canActivate: [adminGuard],
     loadComponent: () => import('./manage-users').then((m) => m.ManageUsers),
