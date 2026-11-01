@@ -7,6 +7,35 @@ import type { Request, Response, NextFunction } from 'express';
 
 // Startup and HTTP tests use the same route and documentation configuration.
 export function configureApp(app: INestApplication): void {
+  const userStatusJson = json({ strict: false });
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    if (
+      request.method !== 'PATCH' ||
+      !/^\/api\/admin\/users\/[^/]+\/status\/?$/.test(request.path)
+    )
+      return next();
+    response.setHeader('Cache-Control', 'no-store');
+    const reject = () =>
+      response.status(400).json({
+        statusCode: 400,
+        code: 'VALIDATION_FAILED',
+        message: 'Invalid user administration request',
+        fieldErrors: {
+          body: ['Supply an object with one boolean isEnabled field'],
+        },
+      });
+    const hasBody =
+      Number(request.headers['content-length'] ?? 0) > 0 ||
+      request.headers['transfer-encoding'] !== undefined;
+    if (hasBody && !request.is('application/json')) {
+      reject();
+      return;
+    }
+    userStatusJson(request, response, (error?: unknown) => {
+      if (error) reject();
+      else next();
+    });
+  });
   // Parse JSON primitives only on booking mutations so their empty-body contracts reject them safely.
   // All existing routes retain Express's default strict JSON parser.
   const bookingJson = json({ strict: false });
@@ -70,7 +99,7 @@ export function configureApp(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('SeatSafe API')
     .setDescription(
-      'Workshop browsing and administration, transaction-safe reservations with account-scoped Idempotency-Key replay, private booking history, repeatable owner cancellation, administrator booking lists, registration, JWT login, rotating refresh cookies, logout and protected account lookup. Angular booking controls arrive in a later phase.',
+      'Workshop browsing and administration, Angular reservations and cancellation, account-scoped Idempotency-Key replay, private booking history, administrator booking lists and user search/status management, registration, JWT login, rotating refresh cookies, logout and protected account lookup.',
     )
     .setVersion('0.1.0')
     .addBearerAuth(
