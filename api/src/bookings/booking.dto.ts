@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { PipeTransform } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsInt, IsUUID, Max, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RegistrationError } from '../auth/registration-error.js';
 import type { BookingStatus } from './booking.entity.js';
@@ -31,6 +31,9 @@ const integer = ({ value }: { value: unknown }): unknown =>
 export class BookingPageQuery {
   @Transform(integer) @IsInt() @Min(1) @Max(2147483647) page = 1;
   @Transform(integer) @IsInt() @Min(1) @Max(100) limit = 25;
+}
+export class BookingIdParams {
+  @IsUUID() id: string;
 }
 export class BookingResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;

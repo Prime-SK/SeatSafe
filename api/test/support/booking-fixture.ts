@@ -200,6 +200,21 @@ export async function bookingFixture() {
         .get(`/api/admin/workshops/${encodeURIComponent(id)}/bookings${suffix}`)
         .set('Authorization', `Bearer ${token}`);
     },
+    mine(token: string, suffix = '') {
+      return request(application.getHttpServer())
+        .get(`/api/bookings/me${suffix}`)
+        .set('Authorization', `Bearer ${token}`);
+    },
+    cancel(token: string, id: string, body?: unknown) {
+      const call = request(application.getHttpServer())
+        .post(`/api/bookings/${encodeURIComponent(id)}/cancel`)
+        .set('Authorization', `Bearer ${token}`);
+      return body === undefined
+        ? call
+        : call
+            .set('Content-Type', 'application/json')
+            .send(JSON.stringify(body));
+    },
   };
 }
 export type BookingFixture = Awaited<ReturnType<typeof bookingFixture>>;

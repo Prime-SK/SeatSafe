@@ -5,9 +5,14 @@ import {
   AdminBookingsController,
 } from './bookings.controller.js';
 import { BookingsService } from './bookings.service.js';
+import { MyBookingsController } from './my-bookings.controller.js';
 @Module({
   imports: [AuthModule],
-  controllers: [BookingsController, AdminBookingsController],
+  controllers: [
+    BookingsController,
+    AdminBookingsController,
+    MyBookingsController,
+  ],
   providers: [BookingsService],
 })
 export class BookingsModule {}

@@ -50,6 +50,8 @@ describe('Swagger documentation (e2e)', () => {
       '/api/auth/me',
       '/api/auth/refresh',
       '/api/auth/register',
+      '/api/bookings/me',
+      '/api/bookings/{id}/cancel',
       '/api/health',
       '/api/workshops',
       '/api/workshops/{id}',

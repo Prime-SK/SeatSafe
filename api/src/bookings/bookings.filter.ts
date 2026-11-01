@@ -32,7 +32,10 @@ export class BookingsFilter implements ExceptionFilter {
       message:
         http.getRequest<Request>().method === 'GET'
           ? 'Unable to load bookings'
-          : 'Unable to reserve seat',
+          : http.getRequest<Request>().path.endsWith('/cancel') ||
+              http.getRequest<Request>().path.endsWith('/cancel/')
+            ? 'Unable to cancel booking'
+            : 'Unable to reserve seat',
     });
   }
 }

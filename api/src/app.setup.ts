@@ -7,13 +7,15 @@ import type { Request, Response, NextFunction } from 'express';
 
 // Startup and HTTP tests use the same route and documentation configuration.
 export function configureApp(app: INestApplication): void {
-  // Parse JSON primitives only on this route so its empty-body contract can reject them safely.
+  // Parse JSON primitives only on booking mutations so their empty-body contracts reject them safely.
   // All existing routes retain Express's default strict JSON parser.
   const bookingJson = json({ strict: false });
   app.use((request: Request, response: Response, next: NextFunction) => {
     if (
       request.method !== 'POST' ||
-      !/^\/api\/workshops\/[^/]+\/bookings\/?$/.test(request.path)
+      !/^\/api\/(?:workshops\/[^/]+\/bookings|bookings\/[^/]+\/cancel)\/?$/.test(
+        request.path,
+      )
     )
       return next();
     response.setHeader('Cache-Control', 'no-store');
@@ -68,7 +70,7 @@ export function configureApp(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('SeatSafe API')
     .setDescription(
-      'Workshop browsing and administration, transaction-safe reservations with required account-scoped Idempotency-Key replay, administrator booking lists, registration, JWT login, rotating refresh cookies, logout and protected account lookup. Cancellation arrives in a later phase.',
+      'Workshop browsing and administration, transaction-safe reservations with account-scoped Idempotency-Key replay, private booking history, repeatable owner cancellation, administrator booking lists, registration, JWT login, rotating refresh cookies, logout and protected account lookup. Angular booking controls arrive in a later phase.',
     )
     .setVersion('0.1.0')
     .addBearerAuth(

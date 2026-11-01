@@ -6,6 +6,8 @@ import type { EntityManager } from 'typeorm';
 import { UserEntity } from '../users/user.entity.js';
 import { AuthSessionEntity } from '../auth/auth-session.entity.js';
 import { WorkshopEntity } from '../workshops/workshop.entity.js';
+import { toWorkshopResponse } from '../workshops/workshop-response.js';
+import type { MyBookingPageDto } from './my-bookings.dto.js';
 import { RegistrationError } from '../auth/registration-error.js';
 import { unauthorized } from '../auth/session-authentication.service.js';
 import type { AuthenticatedPrincipal } from '../auth/authenticated-request.js';
@@ -204,6 +206,98 @@ export class BookingsService {
       };
     } catch (error) {
       throw this.safeError(error, 'Unable to load bookings', databaseBoundary);
+    }
+  }
+  async mine(
+    principal: AuthenticatedPrincipal,
+    query: BookingPageQuery,
+  ): Promise<MyBookingPageDto> {
+    let databaseBoundary = true;
+    try {
+      const [rows, total] = await this.database
+        .getRepository(BookingEntity)
+        .createQueryBuilder('booking')
+        .innerJoinAndSelect('booking.workshop', 'workshop')
+        .where('booking.userId = :userId', { userId: principal.id })
+        .orderBy('booking.createdAt', 'DESC')
+        .addOrderBy('booking.id', 'DESC')
+        .skip((query.page - 1) * query.limit)
+        .take(query.limit)
+        .getManyAndCount();
+      databaseBoundary = false;
+      return {
+        items: rows.map((row) => ({
+          ...bookingResponse(row),
+          workshop: toWorkshopResponse(row.workshop),
+        })),
+        total,
+        page: query.page,
+        limit: query.limit,
+      };
+    } catch (error) {
+      throw this.safeError(error, 'Unable to load bookings', databaseBoundary);
+    }
+  }
+  async cancel(
+    principal: AuthenticatedPrincipal,
+    bookingId: string,
+  ): Promise<BookingResponseDto> {
+    let databaseBoundary = true;
+    const notFound = () =>
+      bookingError(404, 'BOOKING_NOT_FOUND', 'Booking not found');
+    const invalidState = () =>
+      bookingError(500, 'INTERNAL_ERROR', 'Unable to cancel booking');
+    try {
+      return await this.database.transaction(async (manager) => {
+        databaseBoundary = false;
+        const user = await manager
+          .getRepository(UserEntity)
+          .createQueryBuilder('user')
+          .setLock('pessimistic_write')
+          .where('user.id = :id', { id: principal.id })
+          .getOne();
+        if (!user?.isEnabled) throw unauthorized();
+        await this.session(manager, principal);
+        const bookings = manager.getRepository(BookingEntity);
+        const located = await bookings.findOneBy({
+          id: bookingId,
+          userId: user.id,
+        });
+        if (!located) throw notFound();
+        const workshops = manager.getRepository(WorkshopEntity);
+        const workshop = await workshops
+          .createQueryBuilder('workshop')
+          .setLock('pessimistic_write')
+          .where('workshop.id = :id', { id: located.workshopId })
+          .getOne();
+        const booking = await bookings
+          .createQueryBuilder('booking')
+          .setLock('pessimistic_write')
+          .where('booking.id = :id AND booking.userId = :userId', {
+            id: bookingId,
+            userId: user.id,
+          })
+          .getOne();
+        await this.session(manager, principal);
+        if (!booking) throw notFound();
+        if (!workshop || booking.workshopId !== workshop.id)
+          throw invalidState();
+        if (booking.status === 'ACTIVE') {
+          if (workshop.reservedSeats <= 0) throw invalidState();
+          booking.status = 'CANCELLED';
+          booking.cancelledAt = new Date();
+          await bookings.update(
+            { id: booking.id, userId: user.id },
+            { status: booking.status, cancelledAt: booking.cancelledAt },
+          );
+          await workshops.decrement({ id: workshop.id }, 'reservedSeats', 1);
+        }
+        const response = bookingResponse(booking);
+        databaseBoundary = true;
+        return response;
+      });
+    } catch (error) {
+      throw this.safeError(error, 'Unable to cancel booking', databaseBoundary);
     }
   }
   private async session(

@@ -263,6 +263,7 @@ describe('Protected current-account HTTP contract', () => {
         if (
           path === '/api/auth/me' ||
           path.startsWith('/api/admin/') ||
+          path.startsWith('/api/bookings/') ||
           path === '/api/workshops/{id}/bookings'
         )
           expect(operation.security).toEqual([{ 'access-token': [] }]);
