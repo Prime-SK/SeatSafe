@@ -13,6 +13,7 @@ import { AuthSessionEntity } from '../../dist/auth/auth-session.entity.js';
 import { AuthRefreshTokenEntity } from '../../dist/auth/auth-refresh-token.entity.js';
 import { WorkshopEntity } from '../../dist/workshops/workshop.entity.js';
 import { BookingEntity } from '../../dist/bookings/booking.entity.js';
+import { BookingIdempotencyEntity } from '../../dist/bookings/booking-idempotency.entity.js';
 import { PasswordHasher } from '../../dist/auth/password-hasher.js';
 import { assertLocalRaceTarget } from './booking-race.js';
 import { publicBookingRows } from './public-booking-rows.js';
@@ -121,6 +122,7 @@ export async function bookingFixture() {
     close,
     async reset() {
       for (const entity of [
+        BookingIdempotencyEntity,
         BookingEntity,
         AuthRefreshTokenEntity,
         AuthSessionEntity,
@@ -177,10 +179,16 @@ export async function bookingFixture() {
         ...overrides,
       });
     },
-    reserve(token: string, body?: unknown, id = 'legacy-workshop') {
+    reserve(
+      token: string,
+      body?: unknown,
+      id = 'legacy-workshop',
+      key: string = randomUUID(),
+    ) {
       const call = request(application.getHttpServer())
         .post(`/api/workshops/${encodeURIComponent(id)}/bookings`)
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${token}`)
+        .set('Idempotency-Key', key);
       return body === undefined
         ? call
         : call

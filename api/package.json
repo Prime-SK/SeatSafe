@@ -10,7 +10,7 @@
     "db:seed:admin": "npm run build && node dist/database/seed-admin.js",
     "db:seed": "npm run build && node dist/database/seed.js",
     "test:db": "npm run build && vitest run --config ./vitest.config.database.ts",
-    "test:race": "npm run build && vitest run --config ./vitest.config.database.ts test/booking-race.db-spec.ts test/booking-concurrency.db-spec.ts --silent=false --reporter=verbose",
+    "test:race": "npm run build && vitest run --config ./vitest.config.database.ts test/booking-race.db-spec.ts test/booking-concurrency.db-spec.ts test/booking-idempotency.db-spec.ts --silent=false --reporter=verbose",
     "db:migration:show": "npm run build && typeorm migration:show -d dist/database/data-source.js",
     "db:migration:run": "npm run build && typeorm migration:run -d dist/database/data-source.js",
     "db:migration:revert": "npm run build && typeorm migration:revert -d dist/database/data-source.js",

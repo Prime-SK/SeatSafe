@@ -34,6 +34,9 @@ describe('Registration with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(
+      `DELETE FROM "${schema}".booking_idempotency_records`,
+    );
     await database!.query(`DELETE FROM "${schema}".bookings`);
     await database.query(`DELETE FROM "${schema}".auth_sessions`);
     await database
@@ -185,7 +188,7 @@ describe('Registration with real PostgreSQL', () => {
       await database.query(
         `SELECT name FROM "${schema}".migrations ORDER BY id`,
       ),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
   });
   for (const [name, email, role] of [
     ['   ', 'valid@example.test', 'USER'],
@@ -203,7 +206,8 @@ describe('Registration with real PostgreSQL', () => {
     });
   }
   it('reverses and reapplies only the users migration in its temporary schema', async () => {
-    await database.undoLastMigration(); // Remove dependent bookings before the original reversal checks.
+    await database.undoLastMigration(); // Remove idempotency before dependent bookings and original reversal checks.
+    await database.undoLastMigration();
     await database.undoLastMigration();
     // Remove the dependent session migration first; the original users check stays intact.
     await database.undoLastMigration();
@@ -222,6 +226,6 @@ describe('Registration with real PostgreSQL', () => {
         ])
       )[0].name,
     ).not.toBeNull();
-    expect(await database.runMigrations()).toHaveLength(4);
+    expect(await database.runMigrations()).toHaveLength(5);
   });
 });

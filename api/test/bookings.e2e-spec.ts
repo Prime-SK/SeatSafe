@@ -59,6 +59,7 @@ describe('Booking HTTP contracts with mocked persistence', () => {
   it('derives owner from authenticated context and keeps no-store without cookies', async () => {
     const result = await request(fixture.app.getHttpServer())
       .post('/api/workshops/legacy-workshop/bookings')
+      .set('Idempotency-Key', 'http-request-key-0001')
       .set('Authorization', `Bearer ${token}`)
       .send({})
       .expect(201);
@@ -68,6 +69,7 @@ describe('Booking HTTP contracts with mocked persistence', () => {
         sessionId: expect.any(String),
       }),
       'legacy-workshop',
+      'http-request-key-0001',
     );
     expect(result.body).toEqual(response);
     expect(result.headers['cache-control']).toBe('no-store');
@@ -121,6 +123,7 @@ describe('Booking HTTP contracts with mocked persistence', () => {
       );
       const result = await request(fixture.app.getHttpServer())
         .post('/api/workshops/legacy-workshop/bookings')
+        .set('Idempotency-Key', 'http-request-key-0001')
         .set('Authorization', `Bearer ${token}`)
         .expect(status);
       expect(result.headers['cache-control']).toBe('no-store');
@@ -137,6 +140,15 @@ describe('Booking HTTP contracts with mocked persistence', () => {
     ).body;
     const post = document.paths['/api/workshops/{id}/bookings'].post;
     expect(post.security).toEqual([{ 'access-token': [] }]);
+    expect(post.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Idempotency-Key',
+          in: 'header',
+          required: true,
+        }),
+      ]),
+    );
     for (const status of ['201', '400', '401', '404', '409', '500', '503'])
       expect(post.responses[status]).toBeDefined();
     const list = document.paths['/api/admin/workshops/{id}/bookings'].get;
@@ -154,12 +166,47 @@ describe('Booking HTTP contracts with mocked persistence', () => {
   it('rejects a non-JSON payload rather than treating it as an absent body', async () => {
     const result = await request(fixture.app.getHttpServer())
       .post('/api/workshops/legacy-workshop/bookings')
+      .set('Idempotency-Key', 'http-request-key-0001')
       .set('Authorization', `Bearer ${token}`)
       .set('Content-Type', 'text/plain')
       .send('4')
       .expect(400);
     expect(result.body.code).toBe('VALIDATION_FAILED');
     expect(result.headers['cache-control']).toBe('no-store');
+    expect(reserve).not.toHaveBeenCalled();
+  });
+  it.each(
+    [
+      undefined,
+      '',
+      'short',
+      'x'.repeat(129),
+      'invalid key-0000001',
+      'valid-key-000001,valid-key-000002',
+      ['valid-key-000001', 'valid-key-000002'],
+    ].map((key) => ({ key })),
+  )(
+    'rejects a missing or malformed request key %j before persistence',
+    async ({ key }) => {
+      const call = request(fixture.app.getHttpServer())
+        .post('/api/workshops/legacy-workshop/bookings')
+        .set('Authorization', `Bearer ${token}`);
+      if (key !== undefined) call.set({ 'Idempotency-Key': key });
+      const result = await call.expect(400);
+      expect(result.body).toMatchObject({
+        statusCode: 400,
+        code: 'VALIDATION_FAILED',
+        fieldErrors: { 'Idempotency-Key': expect.any(Array) },
+      });
+      expect(result.headers['cache-control']).toBe('no-store');
+      expect(reserve).not.toHaveBeenCalled();
+    },
+  );
+  it('authenticates before request-key validation', async () => {
+    const result = await request(fixture.app.getHttpServer())
+      .post('/api/workshops/legacy-workshop/bookings')
+      .expect(401);
+    expect(result.body.code).toBe('UNAUTHORIZED');
     expect(reserve).not.toHaveBeenCalled();
   });
   it.each([500, 503])(

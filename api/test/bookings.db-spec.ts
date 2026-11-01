@@ -274,10 +274,14 @@ describe('Reservation persistence and API with PostgreSQL', () => {
     const workshops = await fixture.database
       .getRepository(WorkshopEntity)
       .find();
+    await fixture.database.undoLastMigration(); // Sixth migration depends on users; retain original fifth reversal coverage.
     await fixture.database.undoLastMigration();
     expect(
       (await fixture.database.runMigrations()).map((row) => row.name),
-    ).toEqual(['CreateBookings1793491200000']);
+    ).toEqual([
+      'CreateBookings1793491200000',
+      'CreateBookingIdempotency1793577600000',
+    ]);
     expect(await fixture.database.getRepository(UserEntity).find()).toEqual(
       users,
     );

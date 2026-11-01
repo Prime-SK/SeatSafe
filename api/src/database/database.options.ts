@@ -6,6 +6,7 @@ import { UserEntity } from '../users/user.entity.js';
 import { AuthSessionEntity } from '../auth/auth-session.entity.js';
 import { AuthRefreshTokenEntity } from '../auth/auth-refresh-token.entity.js';
 import { BookingEntity } from '../bookings/booking.entity.js';
+import { BookingIdempotencyEntity } from '../bookings/booking-idempotency.entity.js';
 
 export function createDatabaseOptions(
   environment: Environment,
@@ -26,6 +27,7 @@ export function createDatabaseOptions(
       AuthSessionEntity,
       AuthRefreshTokenEntity,
       BookingEntity,
+      BookingIdempotencyEntity,
     ],
     migrations: [
       fileURLToPath(new URL('./migrations/*.js', import.meta.url)).replaceAll(

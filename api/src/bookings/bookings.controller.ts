@@ -14,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiHeader,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -27,6 +28,7 @@ import { CurrentUser } from '../auth/current-user.decorator.js';
 import type { AuthenticatedPrincipal } from '../auth/authenticated-request.js';
 import { BookingsService } from './bookings.service.js';
 import { BookingsFilter } from './bookings.filter.js';
+import { IdempotencyKey } from './idempotency-key.js';
 import {
   BookingPageDto,
   BookingPageQuery,
@@ -97,7 +99,7 @@ function failures(admin = false) {
         status: 409,
         headers,
         description:
-          'ALREADY_BOOKED, REGISTRATION_CLOSED, WORKSHOP_ALREADY_STARTED or WORKSHOP_FULL. No state change.',
+          'ALREADY_BOOKED, REGISTRATION_CLOSED, WORKSHOP_ALREADY_STARTED, WORKSHOP_FULL or IDEMPOTENCY_KEY_CONFLICT. Business conflicts are remembered per request key; key conflicts do not replace an existing result.',
         schema: {
           type: 'object',
           required: ['statusCode', 'code', 'message'],
@@ -110,6 +112,7 @@ function failures(admin = false) {
                 'REGISTRATION_CLOSED',
                 'WORKSHOP_ALREADY_STARTED',
                 'WORKSHOP_FULL',
+                'IDEMPOTENCY_KEY_CONFLICT',
               ],
             },
             message: { type: 'string', example: 'Workshop is full' },
@@ -131,7 +134,20 @@ export class BookingsController {
   @ApiOperation({
     summary: 'Reserve one seat for the authenticated account',
     description:
-      'USER and ADMIN may reserve themselves. No body or {} only. Locks user then workshop and commits the booking with its seat count. Duplicate active booking is checked first. No Idempotency-Key semantics yet; never automatically replay this write.',
+      'USER and ADMIN may reserve themselves. No body or {} only. Requires one case-sensitive Idempotency-Key scoped to the account across sessions. Matching retries return the original 201/404/business-409 status and JSON. Reusing a key for another workshop conflicts. Authentication remains required. Business errors remain fixed for that key even if workshop conditions change; a new attempt requires a new key. Keys are retained without expiration. No automatic retries.',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description:
+      'One account-scoped request key. Reuse only when retrying the same logical reservation.',
+    schema: {
+      type: 'string',
+      minLength: 16,
+      maxLength: 128,
+      pattern: '^[A-Za-z0-9_-]{16,128}$',
+      example: '4302f733-de5b-4fca-8961-6ec85f79acc9',
+    },
   })
   @ApiParam({
     name: 'id',
@@ -147,8 +163,9 @@ export class BookingsController {
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedPrincipal,
     @Body(EmptyBookingBody) _body: unknown,
+    @IdempotencyKey() key: string,
   ) {
-    return this.bookings.reserve(user, id);
+    return this.bookings.reserve(user, id, key);
   }
 }
 @ApiTags('Admin workshops')

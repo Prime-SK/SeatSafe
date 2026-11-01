@@ -68,7 +68,7 @@ export function configureApp(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('SeatSafe API')
     .setDescription(
-      'Workshop browsing and administration, transaction-safe seat reservations, administrator booking lists, registration, JWT login, rotating refresh cookies, logout and protected account lookup. Idempotency and cancellation arrive in later phases.',
+      'Workshop browsing and administration, transaction-safe reservations with required account-scoped Idempotency-Key replay, administrator booking lists, registration, JWT login, rotating refresh cookies, logout and protected account lookup. Cancellation arrives in a later phase.',
     )
     .setVersion('0.1.0')
     .addBearerAuth(

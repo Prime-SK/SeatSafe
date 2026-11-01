@@ -10,6 +10,9 @@ import { RegistrationError } from '../auth/registration-error.js';
 import { unauthorized } from '../auth/session-authentication.service.js';
 import type { AuthenticatedPrincipal } from '../auth/authenticated-request.js';
 import { BookingEntity } from './booking.entity.js';
+import { BookingIdempotencyEntity } from './booking-idempotency.entity.js';
+import type { BookingOutcome } from './booking-idempotency.entity.js';
+import { bookingFingerprint } from './idempotency-key.js';
 import type {
   BookingResponseDto,
   BookingPageDto,
@@ -48,65 +51,117 @@ export class BookingsService {
   async reserve(
     principal: AuthenticatedPrincipal,
     workshopId: string,
+    requestKey: string,
   ): Promise<BookingResponseDto> {
     let databaseBoundary = true;
     try {
-      return await this.database.transaction(async (manager) => {
-        databaseBoundary = false;
-        // User first, workshop second. Session mutations use the same user lock.
-        const user = await manager
-          .getRepository(UserEntity)
-          .createQueryBuilder('user')
-          .setLock('pessimistic_write')
-          .where('user.id = :id', { id: principal.id })
-          .getOne();
-        if (!user?.isEnabled) throw unauthorized();
-        await this.session(manager, principal);
-        const workshops = manager.getRepository(WorkshopEntity);
-        const workshop = await workshops
-          .createQueryBuilder('workshop')
-          .setLock('pessimistic_write')
-          .where('workshop.id = :id', { id: workshopId })
-          .getOne();
-        // Expiry may have passed while waiting for the workshop lock.
-        await this.session(manager, principal);
-        if (!workshop) throw missing();
-        const bookings = manager.getRepository(BookingEntity);
-        if (
-          await bookings.existsBy({
+      const fingerprint = bookingFingerprint(workshopId);
+      const outcome = await this.database.transaction(
+        async (manager): Promise<BookingOutcome> => {
+          databaseBoundary = false;
+          // User first, workshop second. Session mutations use the same user lock.
+          const user = await manager
+            .getRepository(UserEntity)
+            .createQueryBuilder('user')
+            .setLock('pessimistic_write')
+            .where('user.id = :id', { id: principal.id })
+            .getOne();
+          if (!user?.isEnabled) throw unauthorized();
+          await this.session(manager, principal);
+          const records = manager.getRepository(BookingIdempotencyEntity);
+          const saved = await records.findOneBy({
+            userId: user.id,
+            requestKey,
+          });
+          if (saved) {
+            if (saved.fingerprint !== fingerprint) {
+              throw bookingError(
+                409,
+                'IDEMPOTENCY_KEY_CONFLICT',
+                'Request key was already used for another request',
+              );
+            }
+            databaseBoundary = true;
+            return { status: saved.httpStatus, body: saved.response };
+          }
+          // Save safe business outcomes as values, so their transaction can commit.
+          const complete = async (
+            value: BookingResponseDto | RegistrationError,
+          ): Promise<BookingOutcome> => {
+            const result: BookingOutcome =
+              value instanceof RegistrationError
+                ? {
+                    status: value.getStatus() as 404 | 409,
+                    body: value.getResponse() as BookingOutcome['body'],
+                  }
+                : { status: 201, body: value };
+            await records.insert({
+              id: randomUUID(),
+              userId: user.id,
+              requestKey,
+              fingerprint,
+              httpStatus: result.status,
+              response: result.body,
+            });
+            databaseBoundary = true;
+            return result;
+          };
+          const workshops = manager.getRepository(WorkshopEntity);
+          const workshop = await workshops
+            .createQueryBuilder('workshop')
+            .setLock('pessimistic_write')
+            .where('workshop.id = :id', { id: workshopId })
+            .getOne();
+          // Expiry may have passed while waiting for the workshop lock.
+          await this.session(manager, principal);
+          if (!workshop) return complete(missing());
+          const bookings = manager.getRepository(BookingEntity);
+          if (
+            await bookings.existsBy({
+              userId: user.id,
+              workshopId,
+              status: 'ACTIVE',
+            })
+          )
+            return complete(duplicate());
+          if (!workshop.registrationOpen)
+            return complete(
+              bookingError(
+                409,
+                'REGISTRATION_CLOSED',
+                'Registration is closed',
+              ),
+            );
+          if (workshop.startsAt.getTime() <= Date.now())
+            return complete(
+              bookingError(
+                409,
+                'WORKSHOP_ALREADY_STARTED',
+                'Workshop has already started',
+              ),
+            );
+          if (workshop.reservedSeats >= workshop.capacity)
+            return complete(
+              bookingError(409, 'WORKSHOP_FULL', 'Workshop is full'),
+            );
+          const booking = bookings.create({
+            id: randomUUID(),
             userId: user.id,
             workshopId,
             status: 'ACTIVE',
-          })
-        )
-          throw duplicate();
-        if (!workshop.registrationOpen)
-          throw bookingError(
-            409,
-            'REGISTRATION_CLOSED',
-            'Registration is closed',
-          );
-        if (workshop.startsAt.getTime() <= Date.now())
-          throw bookingError(
-            409,
-            'WORKSHOP_ALREADY_STARTED',
-            'Workshop has already started',
-          );
-        if (workshop.reservedSeats >= workshop.capacity)
-          throw bookingError(409, 'WORKSHOP_FULL', 'Workshop is full');
-        const booking = bookings.create({
-          id: randomUUID(),
-          userId: user.id,
-          workshopId,
-          status: 'ACTIVE',
-          cancelledAt: null,
-        });
-        await bookings.insert(booking);
-        await workshops.increment({ id: workshopId }, 'reservedSeats', 1);
-        const response = bookingResponse(booking);
-        databaseBoundary = true; // The remaining operation is transaction commit.
-        return response;
-      });
+            cancelledAt: null,
+          });
+          await bookings.insert(booking);
+          await workshops.increment({ id: workshopId }, 'reservedSeats', 1);
+          const response = bookingResponse(booking);
+          return complete(response);
+        },
+      );
+      if (outcome.status !== 201) {
+        const body = outcome.body as { code: string; message: string };
+        throw bookingError(outcome.status, body.code, body.message);
+      }
+      return outcome.body as BookingResponseDto;
     } catch (error) {
       throw this.safeError(error, 'Unable to reserve seat', databaseBoundary);
     }

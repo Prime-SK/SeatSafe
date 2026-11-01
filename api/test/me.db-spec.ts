@@ -40,6 +40,9 @@ describe('Protected account with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(
+      `DELETE FROM "${schema}".booking_idempotency_records`,
+    );
     await database!.query(`DELETE FROM "${schema}".bookings`);
     await database
       .getRepository(AuthRefreshTokenEntity)

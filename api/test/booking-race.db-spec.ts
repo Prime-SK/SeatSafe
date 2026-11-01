@@ -85,6 +85,9 @@ describe('Test-only booking race with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(
+      `DELETE FROM "${schema}".booking_idempotency_records`,
+    );
     await database!.query(`DELETE FROM "${schema}".bookings`);
     await database!.query(`DELETE FROM ${table}`);
     await database!.query(

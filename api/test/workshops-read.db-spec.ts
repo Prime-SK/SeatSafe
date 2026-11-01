@@ -54,6 +54,9 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
   });
 
   beforeEach(async () => {
+    await database!.query(
+      `DELETE FROM "${schema}".booking_idempotency_records`,
+    );
     await database!.query(`DELETE FROM "${schema}".bookings`);
     await database
       .getRepository(WorkshopEntity)

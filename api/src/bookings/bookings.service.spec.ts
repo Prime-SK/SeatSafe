@@ -4,6 +4,8 @@ import { UserEntity } from '../users/user.entity.js';
 import { WorkshopEntity } from '../workshops/workshop.entity.js';
 import { AuthSessionEntity } from '../auth/auth-session.entity.js';
 import { BookingEntity } from './booking.entity.js';
+import { BookingIdempotencyEntity } from './booking-idempotency.entity.js';
+import { bookingFingerprint } from './idempotency-key.js';
 describe('Booking transaction decisions', () => {
   const principal = {
     id: 'user',
@@ -38,8 +40,16 @@ describe('Booking transaction decisions', () => {
     increment: ReturnType<typeof vi.fn>;
   };
   let database: { transaction: ReturnType<typeof vi.fn> };
+  let records: {
+    findOneBy: ReturnType<typeof vi.fn>;
+    insert: ReturnType<typeof vi.fn>;
+  };
   let manager: { getRepository: ReturnType<typeof vi.fn> };
   beforeEach(() => {
+    records = {
+      findOneBy: vi.fn().mockResolvedValue(null),
+      insert: vi.fn().mockResolvedValue({}),
+    };
     userQuery = query();
     userQuery.getOne.mockResolvedValue({ id: 'user', isEnabled: true });
     workshopQuery = query();
@@ -74,7 +84,9 @@ describe('Booking transaction decisions', () => {
                 ? workshops
                 : entity === BookingEntity
                   ? bookings
-                  : null,
+                  : entity === BookingIdempotencyEntity
+                    ? records
+                    : null,
         ),
     };
     database = {
@@ -87,7 +99,11 @@ describe('Booking transaction decisions', () => {
     service = new BookingsService(database as unknown as DataSource);
   });
   it('locks user before workshop and uses only the transaction manager', async () => {
-    const result = await service.reserve(principal, 'opaque');
+    const result = await service.reserve(
+      principal,
+      'opaque',
+      'unit-request-key-0001',
+    );
     expect(userQuery.setLock).toHaveBeenCalledWith('pessimistic_write');
     expect(workshopQuery.setLock).toHaveBeenCalledWith('pessimistic_write');
     expect(userQuery.getOne.mock.invocationCallOrder[0]).toBeLessThan(
@@ -122,7 +138,7 @@ describe('Booking transaction decisions', () => {
     );
     let finished = false;
     const pending = service
-      .reserve(principal, 'opaque')
+      .reserve(principal, 'opaque', 'unit-request-key-0001')
       .then(() => (finished = true));
     for (let turn = 0; turn < 12; turn++) await Promise.resolve();
     expect(finished).toBe(false);
@@ -138,7 +154,9 @@ describe('Booking transaction decisions', () => {
       reservedSeats: 1,
       startsAt: new Date(0),
     });
-    await expect(service.reserve(principal, 'opaque')).rejects.toMatchObject({
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).rejects.toMatchObject({
       response: { code: 'ALREADY_BOOKED' },
     });
     expect(bookings.insert).not.toHaveBeenCalled();
@@ -172,7 +190,9 @@ describe('Booking transaction decisions', () => {
           expiresAt: new Date(Date.now() + 60000),
         })
         .mockResolvedValueOnce({ revokedAt: null, expiresAt: new Date(0) });
-    await expect(service.reserve(principal, 'opaque')).rejects.toMatchObject({
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).rejects.toMatchObject({
       response: { code: 'UNAUTHORIZED', message: 'Authentication required' },
     });
     expect(bookings.insert).not.toHaveBeenCalled();
@@ -195,7 +215,9 @@ describe('Booking transaction decisions', () => {
                 : { reservedSeats: 1 }),
           },
     );
-    await expect(service.reserve(principal, 'opaque')).rejects.toMatchObject({
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).rejects.toMatchObject({
       response: { code },
     });
     expect(workshops.increment).not.toHaveBeenCalled();
@@ -217,7 +239,7 @@ describe('Booking transaction decisions', () => {
         ),
       );
       const error = await service
-        .reserve(principal, 'opaque')
+        .reserve(principal, 'opaque', 'unit-request-key-0001')
         .catch((failure: unknown) => failure);
       expect(error).toMatchObject({ response: { code: expected } });
       expect(JSON.stringify(error)).not.toContain('private database detail');
@@ -227,7 +249,9 @@ describe('Booking transaction decisions', () => {
     bookings.create.mockImplementation(() => {
       throw new Error('private internal detail');
     });
-    await expect(service.reserve(principal, 'opaque')).rejects.toMatchObject({
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).rejects.toMatchObject({
       response: { code: 'INTERNAL_ERROR', message: 'Unable to reserve seat' },
     });
   });
@@ -240,7 +264,9 @@ describe('Booking transaction decisions', () => {
           throw new Error('private connection/commit detail');
         },
       );
-      await expect(service.reserve(principal, 'opaque')).rejects.toMatchObject({
+      await expect(
+        service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+      ).rejects.toMatchObject({
         response: {
           code: 'DATABASE_UNAVAILABLE',
           message: 'Database unavailable',
@@ -256,6 +282,89 @@ describe('Booking transaction decisions', () => {
     } as unknown as DataSource);
     await expect(
       unavailable.list('opaque', { page: 1, limit: 25 }),
+    ).rejects.toMatchObject({ response: { code: 'DATABASE_UNAVAILABLE' } });
+  });
+  it('persists only the mapped successful snapshot and request fingerprint', async () => {
+    const response = await service.reserve(
+      principal,
+      'opaque',
+      'unit-request-key-0001',
+    );
+    expect(records.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user',
+        requestKey: 'unit-request-key-0001',
+        fingerprint: bookingFingerprint('opaque'),
+        httpStatus: 201,
+        response,
+      }),
+    );
+    expect(JSON.stringify(records.insert.mock.calls)).not.toContain(
+      'sessionId',
+    );
+  });
+  it('replays without locking/rechecking workshop eligibility or writing', async () => {
+    const body = {
+      id: 'original',
+      workshopId: 'opaque',
+      status: 'ACTIVE',
+      createdAt: '2030-01-01T00:00:00.000Z',
+      cancelledAt: null,
+    };
+    records.findOneBy.mockResolvedValue({
+      fingerprint: bookingFingerprint('opaque'),
+      httpStatus: 201,
+      response: body,
+    });
+    expect(
+      await service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).toEqual(body);
+    expect(workshopQuery.getOne).not.toHaveBeenCalled();
+    expect(records.insert).not.toHaveBeenCalled();
+    expect(workshops.increment).not.toHaveBeenCalled();
+  });
+  it('rejects mismatched fingerprints without replacing the original record', async () => {
+    records.findOneBy.mockResolvedValue({
+      fingerprint: bookingFingerprint('different'),
+    });
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).rejects.toMatchObject({ response: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
+    expect(records.insert).not.toHaveBeenCalled();
+    expect(workshopQuery.getOne).not.toHaveBeenCalled();
+  });
+  it('commits a business-error value before returning its HTTP error', async () => {
+    workshopQuery.getOne.mockResolvedValue(null);
+    let committed = false;
+    database.transaction.mockImplementation(
+      async (work: (manager: unknown) => Promise<unknown>) => {
+        const result = await work(manager);
+        expect(result).toMatchObject({
+          status: 404,
+          body: { code: 'WORKSHOP_NOT_FOUND' },
+        });
+        committed = true;
+        return result;
+      },
+    );
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
+    ).rejects.toMatchObject({ response: { code: 'WORKSHOP_NOT_FOUND' } });
+    expect(committed).toBe(true);
+    expect(records.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ httpStatus: 404 }),
+    );
+  });
+  it('does not return a business outcome if commit fails', async () => {
+    workshopQuery.getOne.mockResolvedValue(null);
+    database.transaction.mockImplementation(
+      async (work: (manager: unknown) => Promise<unknown>) => {
+        await work(manager);
+        throw new Error('private commit failure');
+      },
+    );
+    await expect(
+      service.reserve(principal, 'opaque', 'unit-request-key-0001'),
     ).rejects.toMatchObject({ response: { code: 'DATABASE_UNAVAILABLE' } });
   });
 });
