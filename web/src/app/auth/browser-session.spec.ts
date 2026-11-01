@@ -53,6 +53,41 @@ describe('Coordinated browser sessions', () => {
   };
   const me = (error = (_: unknown) => undefined) =>
     client.get('/api/auth/me', { context: context() }).subscribe({ error });
+  it.each(['POST', 'PATCH'])(
+    'refreshes before an expired-token %s but never replays its failed write',
+    (method) => {
+      vi.useFakeTimers();
+      login();
+      vi.advanceTimersByTime(901_000);
+      client
+        .request(method, '/api/admin/workshops/opaque', {
+          body: { title: 'Updated' },
+          context: context(),
+        })
+        .subscribe({ error: () => undefined });
+      http.expectNone('/api/admin/workshops/opaque');
+      http.expectOne('/api/auth/refresh').flush({ ...result, accessToken: 'new-access' });
+      const write = http.expectOne('/api/admin/workshops/opaque');
+      expect(write.request.headers.get('Authorization')).toBe('Bearer new-access');
+      write.flush({}, { status: 401, statusText: 'Unauthorized' });
+      http.expectNone('/api/auth/refresh');
+      http.expectNone('/api/admin/workshops/opaque');
+    },
+  );
+  it.each([0, 403, 500, 503])(
+    'does not refresh or replay administrator write failure %s',
+    (status) => {
+      login();
+      client
+        .patch('/api/admin/workshops/opaque', { title: 'Updated' }, { context: context() })
+        .subscribe({ error: () => undefined });
+      const write = http.expectOne('/api/admin/workshops/opaque');
+      if (status === 0) write.error(new ProgressEvent('error'));
+      else write.flush({}, { status, statusText: 'Failure' });
+      http.expectNone('/api/auth/refresh');
+      http.expectNone('/api/admin/workshops/opaque');
+    },
+  );
   it('restores once and coalesces startup with concurrent protected requests', () => {
     auth.initialize().subscribe();
     auth.initialize().subscribe();

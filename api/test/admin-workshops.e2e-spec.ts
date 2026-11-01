@@ -270,6 +270,8 @@ describe('Administrator workshop HTTP contracts', () => {
       'title',
     ]);
     expect(doc.components.schemas.UpdateWorkshopDto.required ?? []).toEqual([]);
-    expect(doc.paths['/api/admin/workshops/{id}/bookings']).toBeUndefined();
+    expect(
+      doc.paths['/api/admin/workshops/{id}/bookings'].get.security,
+    ).toEqual([{ 'access-token': [] }]);
   });
 });

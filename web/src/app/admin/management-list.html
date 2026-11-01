@@ -1,0 +1,108 @@
+<div class="heading">
+  <div>
+    <h1>Manage workshops</h1>
+    <p class="intro">Create workshops and keep schedules, capacity and registration up to date.</p>
+  </div>
+  <a pButton routerLink="/admin/workshops/new">Create workshop</a>
+</div>
+@if (saves.notice()) {
+  <p-message severity="success" [closable]="true" (onClose)="saves.notice.set('')">{{
+    saves.notice()
+  }}</p-message>
+}
+@if (state() === 'loading') {
+  <span role="status" class="visually-hidden">Loading workshops…</span>
+  <div class="cards loading" aria-hidden="true">
+    @for (item of [1, 2, 3]; track item) {
+      <p-card><p-skeleton height="12rem" /></p-card>
+    }
+  </div>
+} @else if (state() === 'error') {
+  <section class="state-panel">
+    <h2>Workshops are unavailable</h2>
+    <p>We could not load the current workshops. Please try again.</p>
+    <p-button label="Retry" (onClick)="load()" />
+  </section>
+} @else if (!workshops().length) {
+  <section class="state-panel">
+    <h2>No workshops yet</h2>
+    <p>Create the first workshop to make it available in the catalogue.</p>
+    <a pButton routerLink="/admin/workshops/new">Create workshop</a>
+  </section>
+} @else {
+  <div class="desktop">
+    <p-table [value]="workshops()" dataKey="id" [tableStyle]="{ 'min-width': '100%' }">
+      <ng-template #header
+        ><tr>
+          <th scope="col">Workshop / Sri Lanka time</th>
+          <th scope="col">Registration</th>
+          <th scope="col">Seats</th>
+          <th scope="col">Actions</th>
+        </tr></ng-template
+      >
+      <ng-template #body let-workshop
+        ><tr>
+          <td>
+            <strong>{{ workshop.title }}</strong
+            ><br /><time [attr.datetime]="workshop.startsAt">{{
+              workshop.startsAt | workshopDate
+            }}</time>
+          </td>
+          <td>
+            <p-tag
+              [severity]="workshop.registrationOpen ? 'success' : 'secondary'"
+              [value]="workshop.registrationOpen ? 'Open' : 'Closed'"
+            />
+          </td>
+          <td>
+            {{ workshop.reservedSeats }} reserved<br />{{ workshop.availableSeats }} available /
+            {{ workshop.capacity }} total
+          </td>
+          <td>
+            <div class="actions">
+              <a
+                pButton
+                [routerLink]="['/admin/workshops', workshop.id, 'edit']"
+                [attr.aria-label]="'Edit ' + workshop.title"
+                >Edit</a
+              ><a
+                pButton
+                severity="secondary"
+                [routerLink]="['/workshops', workshop.id]"
+                [attr.aria-label]="'View workshop: ' + workshop.title"
+                >View workshop</a
+              >
+            </div>
+          </td>
+        </tr></ng-template
+      >
+    </p-table>
+  </div>
+  <div class="cards mobile">
+    @for (workshop of workshops(); track workshop.id) {
+      <p-card
+        ><h2>{{ workshop.title }}</h2>
+        <time [attr.datetime]="workshop.startsAt">{{ workshop.startsAt | workshopDate }}</time>
+        <p class="timezone">Sri Lanka time</p>
+        <p-tag
+          [severity]="workshop.registrationOpen ? 'success' : 'secondary'"
+          [value]="workshop.registrationOpen ? 'Registration open' : 'Registration closed'"
+        />
+        <p>
+          {{ workshop.reservedSeats }} reserved · {{ workshop.availableSeats }} available /
+          {{ workshop.capacity }} total
+        </p>
+        <div class="actions">
+          <a
+            pButton
+            [routerLink]="['/admin/workshops', workshop.id, 'edit']"
+            [attr.aria-label]="'Edit ' + workshop.title"
+            >Edit</a
+          ><a pButton severity="secondary" [routerLink]="['/workshops', workshop.id]"
+            >View workshop</a
+          >
+        </div></p-card
+      >
+    }
+  </div>
+}

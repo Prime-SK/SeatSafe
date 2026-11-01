@@ -41,6 +41,7 @@ describe('Login sessions with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(`DELETE FROM "${schema}".bookings`);
     await database
       .getRepository(AuthRefreshTokenEntity)
       .createQueryBuilder()
@@ -213,6 +214,7 @@ describe('Login sessions with real PostgreSQL', () => {
       'CreateUsers1791676800000',
       'CreateAuthSessions1791763200000',
       'CreateAuthRefreshTokens1792972800000',
+      'CreateBookings1793491200000',
     ]);
     const runner = database.createQueryRunner();
     try {
@@ -228,6 +230,7 @@ describe('Login sessions with real PostgreSQL', () => {
   });
   it('reverses and reapplies only sessions while keeping the account and workshop tables', async () => {
     await login().expect(200);
+    await database.undoLastMigration(); // Remove dependent bookings before refresh/session tables.
     await database.undoLastMigration();
     await database.undoLastMigration();
     expect(
@@ -245,6 +248,6 @@ describe('Login sessions with real PostgreSQL', () => {
         ])
       )[0].name,
     ).not.toBeNull();
-    expect(await database.runMigrations()).toHaveLength(2);
+    expect(await database.runMigrations()).toHaveLength(3);
   });
 });

@@ -260,7 +260,11 @@ describe('Protected current-account HTTP contract', () => {
       for (const operation of Object.values(
         operations as Record<string, { security?: unknown }>,
       )) {
-        if (path === '/api/auth/me' || path.startsWith('/api/admin/'))
+        if (
+          path === '/api/auth/me' ||
+          path.startsWith('/api/admin/') ||
+          path === '/api/workshops/{id}/bookings'
+        )
           expect(operation.security).toEqual([{ 'access-token': [] }]);
         else if (path === '/api/auth/refresh')
           expect(operation.security).toEqual([{ 'refresh-cookie': [] }]);

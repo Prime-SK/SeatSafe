@@ -40,6 +40,7 @@ describe('Refresh credentials with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(`DELETE FROM "${schema}".bookings`);
     await database
       .getRepository(AuthRefreshTokenEntity)
       .createQueryBuilder()
@@ -248,11 +249,12 @@ describe('Refresh credentials with real PostgreSQL', () => {
   it('reverses/reapplies the additive migration without changing existing sessions or backfilling credentials', async () => {
     await login().expect(200);
     const before = await database.getRepository(AuthSessionEntity).find();
+    await database.undoLastMigration(); // Bookings is now the fifth migration.
     await database.undoLastMigration();
     expect(await database.getRepository(AuthSessionEntity).find()).toEqual(
       before,
     );
-    expect(await database.runMigrations()).toHaveLength(1);
+    expect(await database.runMigrations()).toHaveLength(2);
     expect(await records().count()).toBe(0);
     expect(await database.getRepository(AuthSessionEntity).find()).toEqual(
       before,
@@ -262,6 +264,6 @@ describe('Refresh credentials with real PostgreSQL', () => {
     ).toEqual([]);
     expect(
       await database.query(`SELECT * FROM "${schema}".migrations`),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
   });
 });

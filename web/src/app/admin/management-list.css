@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.heading a {
+  flex-shrink: 0;
+}
+.desktop {
+  margin-top: 1.5rem;
+}
+td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  max-width: 25rem;
+}
+th {
+  text-align: left;
+}
+time {
+  font-size: 0.95rem;
+  color: var(--p-text-muted-color);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.cards {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.mobile {
+  display: none;
+}
+.loading {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+h2 {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .heading {
+    flex-direction: column;
+  }
+  .desktop {
+    display: none;
+  }
+  .mobile {
+    display: grid;
+  }
+  .loading {
+    grid-template-columns: 1fr;
+  }
+}

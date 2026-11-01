@@ -12,6 +12,7 @@ import { AuthSessionEntity } from '../dist/auth/auth-session.entity.js';
 import { AuthRefreshTokenEntity } from '../dist/auth/auth-refresh-token.entity.js';
 import { PasswordHasher } from '../dist/auth/password-hasher.js';
 import { seedAdminAccount } from '../dist/database/seed-admin-account.js';
+import { publicBookingRows } from './support/public-booking-rows.js';
 
 const schema = `seatsafe_test_${randomUUID().replaceAll('-', '')}`;
 describe('Administrator authorization and seeding with PostgreSQL', () => {
@@ -31,6 +32,7 @@ describe('Administrator authorization and seeding with PostgreSQL', () => {
         (table) => control.query(`SELECT * FROM public."${table}" ORDER BY id`),
       ),
     );
+    rows.push(await publicBookingRows(control));
     return createHash('sha256').update(JSON.stringify(rows)).digest('hex');
   }
   beforeAll(async () => {
@@ -53,6 +55,7 @@ describe('Administrator authorization and seeding with PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(`DELETE FROM "${schema}".bookings`);
     for (const entity of [
       AuthRefreshTokenEntity,
       AuthSessionEntity,

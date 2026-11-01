@@ -12,6 +12,7 @@ import { UserEntity } from '../dist/users/user.entity.js';
 import { AuthSessionEntity } from '../dist/auth/auth-session.entity.js';
 import { AuthRefreshTokenEntity } from '../dist/auth/auth-refresh-token.entity.js';
 import { seedAdminAccount } from '../dist/database/seed-admin-account.js';
+import { publicBookingRows } from './support/public-booking-rows.js';
 
 const schema = `seatsafe_test_${randomUUID().replaceAll('-', '')}`;
 const hash = (value: string | Buffer) =>
@@ -34,14 +35,15 @@ describe('Workshop administration with real PostgreSQL', () => {
   });
   async function rowFingerprint() {
     return hash(
-      JSON.stringify(
+      JSON.stringify([
         await Promise.all(
           ['users', 'auth_sessions', 'auth_refresh_tokens', 'workshops'].map(
             (table) =>
               control.query(`SELECT * FROM public."${table}" ORDER BY id`),
           ),
         ),
-      ),
+        await publicBookingRows(control),
+      ]),
     );
   }
   async function privateFingerprint() {
@@ -80,6 +82,7 @@ describe('Workshop administration with real PostgreSQL', () => {
     await database.runMigrations();
   });
   beforeEach(async () => {
+    await database!.query(`DELETE FROM "${schema}".bookings`);
     for (const entity of [
       AuthRefreshTokenEntity,
       AuthSessionEntity,

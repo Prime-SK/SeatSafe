@@ -9,6 +9,11 @@
       <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Account</a>
     }
     @if (auth.account(); as account) {
+      @if (account.role === 'ADMIN') {
+        <a routerLink="/admin/workshops" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Manage workshops</a
+        >
+      }
       <a routerLink="/account" routerLinkActive="active" ariaCurrentWhenActive="page">Account</a>
       <p-tag severity="success" [value]="'Signed in as ' + account.displayName" />
     } @else if (auth.status() === 'checking') {

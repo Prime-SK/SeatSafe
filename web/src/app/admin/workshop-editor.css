@@ -1,0 +1,69 @@
+:host {
+  display: block;
+  max-width: 48rem;
+}
+h1 {
+  margin-top: 1.5rem;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+.field {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+form {
+  margin-top: 1.5rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.error-summary {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--p-red-700);
+  border-radius: 8px;
+}
+.error-summary h2 {
+  font-size: 1rem;
+  margin-top: 0;
+}
+.error-summary ul {
+  padding-left: 1.25rem;
+  margin-bottom: 0;
+}
+.error-summary a {
+  color: var(--p-red-700);
+}
+.seat-summary {
+  padding: 1rem;
+  background: var(--p-slate-50);
+  border-radius: 8px;
+}
+p-card {
+  display: block;
+}
+p-message {
+  display: block;
+  overflow-wrap: anywhere;
+}
+:host small {
+  line-height: 1.5;
+}
+@media (max-width: 479px) {
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .actions p-button {
+    display: grid;
+  }
+}

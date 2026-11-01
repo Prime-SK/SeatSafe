@@ -54,7 +54,12 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
   });
 
   beforeEach(async () => {
-    await database.getRepository(WorkshopEntity).clear();
+    await database!.query(`DELETE FROM "${schema}".bookings`);
+    await database
+      .getRepository(WorkshopEntity)
+      .createQueryBuilder()
+      .delete()
+      .execute();
     await seedWorkshops(database, new Date('2026-10-10T10:00:00Z'));
   });
 
@@ -163,7 +168,11 @@ describe('Workshop HTTP reads (real PostgreSQL)', () => {
   });
 
   it('returns an empty array when the test table has no rows', async () => {
-    await database.getRepository(WorkshopEntity).clear();
+    await database
+      .getRepository(WorkshopEntity)
+      .createQueryBuilder()
+      .delete()
+      .execute();
     await request(app.getHttpServer())
       .get('/api/workshops')
       .expect(200)

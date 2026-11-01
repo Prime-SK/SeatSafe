@@ -1,0 +1,216 @@
+<a pButton severity="secondary" routerLink="/admin/workshops">Back to workshops</a>
+<h1>{{ id ? 'Edit workshop' : 'Create workshop' }}</h1>
+<p class="intro">
+  {{
+    id
+      ? 'Update the details below, then save to apply your changes.'
+      : 'Set the schedule and capacity for a new workshop.'
+  }}
+</p>
+<p-confirmdialog
+  [closable]="false"
+  [closeOnEscape]="true"
+  [style]="{ width: '28rem', maxWidth: 'calc(100vw - 2rem)' }"
+/>
+@if (state() === 'loading') {
+  <span role="status" class="visually-hidden">Loading workshop…</span
+  ><p-card aria-hidden="true"><p-skeleton height="28rem" /></p-card>
+} @else if (state() === 'missing') {
+  <section class="state-panel">
+    <h2>Workshop not found</h2>
+    <p>This workshop may no longer be available. Return to the list to choose another workshop.</p>
+  </section>
+} @else if (state() === 'error') {
+  <section class="state-panel">
+    <h2>Workshop unavailable</h2>
+    <p>The current workshop could not be loaded.</p>
+    <p-button label="Retry" (onClick)="load()" />
+  </section>
+} @else {
+  <p-card>
+    @if (original(); as workshop) {
+      <p class="seat-summary">
+        {{ workshop.reservedSeats }} reserved · {{ workshop.availableSeats }} available /
+        {{ workshop.capacity }} total seats
+      </p>
+    }
+    @if (message()) {
+      <p-message severity="error">{{ message() }}</p-message
+      ><a pButton severity="secondary" routerLink="/admin/workshops">Inspect current workshops</a>
+    }
+    @if (conflict()) {
+      <p-button label="Reload current values" severity="secondary" (onClick)="reload()" />
+    }
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="pending()">
+      @if (errorEntries().length) {
+        <div #summary tabindex="-1" class="error-summary" role="alert">
+          <h2>Check the workshop details</h2>
+          <ul>
+            @for (entry of errorEntries(); track entry.field) {
+              <li>
+                <a [href]="'#' + entry.field" (click)="focusField($event, entry.field)">{{
+                  entry.message
+                }}</a>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+      <fieldset [disabled]="pending()">
+        <legend class="visually-hidden">Workshop details</legend>
+        <div class="field">
+          <label pLabel for="title">Workshop title</label
+          ><input
+            id="title"
+            pInputText
+            formControlName="title"
+            [fluid]="true"
+            [invalid]="!!error('title')"
+            (blur)="touch('title')"
+            autocomplete="off"
+            aria-required="true"
+            [attr.aria-invalid]="!!error('title')"
+            [attr.aria-describedby]="error('title') ? 'title-help title-error' : 'title-help'"
+          /><small id="title-help">A clear title of up to 200 characters.</small>
+          @if (error('title')) {
+            <p-message
+              id="title-error"
+              severity="error"
+              variant="simple"
+              role="note"
+              aria-live="off"
+              >{{ error('title') }}</p-message
+            >
+          }
+        </div>
+        <div class="field">
+          <label pLabel for="capacity">Capacity</label
+          ><p-inputnumber
+            inputId="capacity"
+            formControlName="capacity"
+            [fluid]="true"
+            [useGrouping]="false"
+            [minFractionDigits]="0"
+            [maxFractionDigits]="0"
+            [invalid]="!!error('capacity')"
+            (onBlur)="touch('capacity')"
+            [inputStyle]="{ width: '100%' }"
+            [pt]="{
+              pcInputText: {
+                root: {
+                  'aria-required': 'true',
+                  'aria-describedby': error('capacity')
+                    ? 'capacity-help capacity-error'
+                    : 'capacity-help',
+                  'aria-invalid': !!error('capacity'),
+                },
+              },
+            }"
+          /><small id="capacity-help"
+            >Whole seats, from 1 to 2,147,483,647. Capacity cannot be below reserved seats.</small
+          >
+          @if (error('capacity')) {
+            <p-message
+              id="capacity-error"
+              severity="error"
+              variant="simple"
+              role="note"
+              aria-live="off"
+              >{{ error('capacity') }}</p-message
+            >
+          }
+        </div>
+        <div class="field">
+          <label pLabel for="schedule">Start date and time</label
+          ><p-datepicker
+            inputId="schedule"
+            formControlName="schedule"
+            [fluid]="true"
+            dateFormat="dd/mm/yy"
+            [showTime]="true"
+            hourFormat="24"
+            [showIcon]="true"
+            [showOnFocus]="false"
+            [keepInvalid]="true"
+            [invalid]="!!error('schedule')"
+            (input)="dateInput($event)"
+            (onSelect)="selectDate()"
+            (onBlur)="touch('schedule')"
+            appendTo="body"
+            [pt]="{
+              pcInputText: {
+                root: {
+                  'aria-required': 'true',
+                  'aria-describedby': error('schedule')
+                    ? 'schedule-help schedule-error'
+                    : 'schedule-help',
+                  'aria-invalid': !!error('schedule'),
+                },
+              },
+            }"
+          /><small id="schedule-help"
+            >Sri Lanka time (Asia/Colombo, UTC+05:30). Use DD/MM/YYYY HH:mm in 24-hour time. New
+            schedules must be in the future.</small
+          >
+          @if (error('schedule')) {
+            <p-message
+              id="schedule-error"
+              severity="error"
+              variant="simple"
+              role="note"
+              aria-live="off"
+              >{{ error('schedule') }}</p-message
+            >
+          }
+        </div>
+        <div class="field">
+          <label pLabel for="registrationOpen">Registration open</label
+          ><p-toggleswitch
+            inputId="registrationOpen"
+            formControlName="registrationOpen"
+            (onBlur)="touch('registrationOpen')"
+            [invalid]="!!error('registrationOpen')"
+            [pt]="{
+              input: {
+                'aria-describedby': error('registrationOpen')
+                  ? 'registration-help registration-error'
+                  : 'registration-help',
+                'aria-invalid': !!error('registrationOpen'),
+              },
+            }"
+          /><small id="registration-help"
+            >This setting takes effect when you save. Past workshops can be closed but cannot be
+            reopened.</small
+          >
+          @if (error('registrationOpen')) {
+            <p-message
+              id="registration-error"
+              severity="error"
+              variant="simple"
+              role="note"
+              aria-live="off"
+              >{{ error('registrationOpen') }}</p-message
+            >
+          }
+        </div>
+        <div class="actions">
+          <p-button
+            type="submit"
+            [label]="pending() ? 'Saving…' : 'Save workshop'"
+            [loading]="pending()"
+            [disabled]="pending() || (!!id && !changed())"
+          /><p-button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            [disabled]="pending()"
+            (onClick)="cancel()"
+          />
+        </div>
+      </fieldset>
+      @if (pending()) {
+        <p role="status">Saving workshop. Please wait before leaving this page.</p>
+      }
+    </form>
+  </p-card>
+}

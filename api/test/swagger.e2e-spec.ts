@@ -44,6 +44,7 @@ describe('Swagger documentation (e2e)', () => {
       '/api/admin/access',
       '/api/admin/workshops',
       '/api/admin/workshops/{id}',
+      '/api/admin/workshops/{id}/bookings',
       '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/me',
@@ -52,6 +53,7 @@ describe('Swagger documentation (e2e)', () => {
       '/api/health',
       '/api/workshops',
       '/api/workshops/{id}',
+      '/api/workshops/{id}/bookings',
     ]);
     expect(document.paths['/api']?.get?.responses['200']).toMatchObject({
       content: {
