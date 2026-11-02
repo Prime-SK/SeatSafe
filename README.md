@@ -2,7 +2,7 @@
 
 A workshop booking application built to explain reliable reservations, recoverable browser sessions and administrator workflows through working features.
 
-**Release status:** the Phase 29 release package is implemented locally. Neon PostgreSQL 18 in Singapore is connected over verified TLS, with all six migrations applied and an isolated application journey verified. Public Render deployment, hosted acceptance checks and live links are pending. This is not yet a verified live release.
+**Live demo:** [SeatSafe](https://seatsafe.onrender.com) · [Swagger API](https://seatsafe.onrender.com/swagger). Final Phase 29 implementation and hosted acceptance are complete; the learning review remains pending. Hosted checks combine automated observations and explicitly identified user verification.
 
 ## Features
 
@@ -13,7 +13,7 @@ A workshop booking application built to explain reliable reservations, recoverab
 - Development-only reliability lab using synthetic fixtures in disposable schemas. Disabled in production.
 - Public Swagger; protected operations retain authentication and current database role checks.
 
-![Administrator history with synthetic fixtures](assets/screenshots/attendees-desktop.png)
+![Live SeatSafe catalogue](assets/screenshots/workshops-live.png)
 
 <details><summary>Mobile attendee history</summary>
 
@@ -78,7 +78,7 @@ npm run test:release --prefix api
 
 Suites use owned disposable schemas, compare development/private fingerprints and fail on cleanup/preservation problems. Browser journeys use real APIs with interception only for deliberate transport faults. No saved authentication state, traces, video or network-payload attachments.
 
-New Phase 29 observations: **265 backend unit, 279 mocked HTTP, 241 PostgreSQL, 264 Angular and 12 desktop/mobile browser tests passed**. The final rebuilt compiled-server browser check also passed: **1,062 tests in total**. The release initial bundle is **447.47kB**, under the unchanged 500kB warning budget. The focused race command passed **47 cases already included in PostgreSQL totals**. Phase 28's 1,019 total is historical.
+New Phase 29 observations: **272 backend unit, 279 mocked HTTP, 241 PostgreSQL, 264 Angular and 12 desktop/mobile browser tests passed**. The final rebuilt compiled-server browser check also passed: **1,069 tests in total**. The release initial bundle is **447.47kB**, under the unchanged 500kB warning budget. The focused race command passed **47 cases already included in PostgreSQL totals**. Phase 28's 1,019 total is historical.
 
 The **100-user HTTP reservation experiment** produced one 201, 99 WORKSHOP_FULL, zero unexpected/transport/timeout outcomes and one ACTIVE booking/reserved seat. The unchanged unsafe test-only control accepted two internal attempts for one seat while storing a counter of one. Local lab runs use **internal service attempts**, not HTTP requests. These prove specific correctness properties, not throughput or latency. Never load-test the free hosted service.
 
@@ -91,7 +91,7 @@ npm run start:release --prefix api
 
 The release build compiles both apps, copies Angular to `api/dist/client` and generates only the ignored licence artifact from private configuration. Production fails if the frontend entry is absent. Nested HTML navigation supports reloads; API/Swagger routes remain backend routes; missing assets return 404. Fingerprinted JS/CSS is cached immutably; HTML/licence configuration remains refreshable. The 500kB initial warning budget is unchanged.
 
-[`render.yaml`](render.yaml) defines one free manually deployed service: Node 24.22.1, pinned npm build, provider PORT, bind 0.0.0.0, health /api/health. Use a separate Neon PostgreSQL 18 database and direct endpoint with `DB_SSL=true`, certificate verification and a five-connection pool. Supply private database values, strong JWT secret, exact hosted HTTPS origins and PRIMENG_LICENSE through provider configuration. Lab execution stays disabled. The proxy hop setting requires actual forwarding-chain and spoofing verification before hosted acceptance; unrestricted trust is never enabled.
+[`render.yaml`](render.yaml) defines one free manually deployed service: Node 24.22.1, pinned npm build, provider PORT, bind 0.0.0.0, health /api/health. Use a separate Neon PostgreSQL 18 database and direct endpoint with `DB_SSL=true`, certificate verification and a five-connection pool. Supply private database values, strong JWT secret, exact hosted HTTPS origins and PRIMENG_LICENSE through provider configuration. Lab execution stays disabled. The configured bounded proxy trust passed a hosted forged-prefix check: five missing-cookie logout requests returned 204, the sixth 429 despite changing forwarding headers. This verifies that observed route, not every possible network path; unrestricted trust is never enabled.
 
 Privately copy `api/.env.production.example` to ignored `api/.env.production.local`, enter hosted database settings, then run locally:
 
@@ -105,7 +105,7 @@ Database commands require no JWT/origin settings. Migrations never run during bu
 
 For Neon CLI onboarding, install/login privately, then link an existing project with PostgreSQL only. This project now includes `neon.ts` and pinned root development tooling (`npm ci --ignore-scripts`). Root `npm run build` builds the full release. Neon context `.neon` and pulled `.env.local` stay ignored. After a PostgreSQL environment pull, `npm run neon:database:configure` maps `DATABASE_URL_UNPOOLED` into a **new**, ignored `api/.env.production.local` with certificate-verified TLS. It refuses to replace an existing file; never use it to overwrite local `api/.env`. Render application traffic uses the agreed bounded direct connection, while database commands use the same direct endpoint.
 
-The Neon continuation additionally passed **25 HTTP checks** against a locally started compiled application using an owned disposable schema on the real hosted database. They covered authentication, refresh/logout, administrator operations, reservation/replay/cancellation/rebooking and role denial. The fixture was removed and hosted public/local development/private snapshots matched. This is separate evidence from the 1,062 regression tests above, and does not prove a public Render deployment or production browser cookie/proxy behavior.
+The Neon continuation additionally passed **25 HTTP checks** against a locally started compiled application using an owned disposable schema on the real hosted database. They covered authentication, refresh/logout, administrator operations, reservation/replay/cancellation/rebooking and role denial. The fixture was removed and hosted public/local development/private snapshots matched. This is separate evidence from the 1,069 regression tests above, and was followed by the separate live Render checks below.
 
 Create future demo workshops through the admin UI. Verify register/login/reload/reserve/history/cancel/rebook/logout, administrator features, origin/cookie/proxy behavior and restart persistence before publishing live links. Provider sign-in/private entry remains a user step.
 
@@ -115,10 +115,22 @@ For recovery, check health and safe provider/application logs without sharing cr
 
 ## CI and limitations
 
-GitHub Actions builds, checks types/lint/formatting and runs unit/HTTP/PostgreSQL/Chromium suites using disposable PostgreSQL 18 and public test credentials. Configure private repository secret `PRIMENG_LICENSE`; cloud credentials are not used in CI. The fixture writer refuses non-CI use/existing private files. Failure artifacts are restricted to safe browser screenshots. Remote CI verification remains pending.
+GitHub Actions builds, checks types/lint/formatting and runs unit/HTTP/PostgreSQL/Chromium suites using disposable PostgreSQL 18 and public test credentials. Configure private repository secret `PRIMENG_LICENSE`; cloud credentials are not used in CI. The fixture writer refuses non-CI use/existing private files. Failure artifacts are restricted to safe browser screenshots. [GitHub Actions passed completely on the verified application commit f5cc71e](https://github.com/Prime-SK/SeatSafe/actions/runs/41518246329).
 
 Runtime audit: **zero high/critical**, with three moderate backend findings through TypeORM's glob/minimatch tooling path. Entity/migration paths are fixed application configuration; clients supply no glob patterns. No forced fix or TypeORM major upgrade was used. Frontend audit reported zero findings. Review advisories again for later releases.
 
 In-memory throttling and lab reports target one API instance. Lost refresh responses can trigger strict reuse revocation; the browser avoids automatic ambiguous retries. Actual 200% zoom and OS reduced-motion verification remain pending, distinct from browser emulation. Earlier learning reviews and Phase 24's historical preservation gap remain documented privately.
 
-Original Phases 30–31 are consolidated into final Phase 29. Local implementation, verified live deployment and the final learning review remain separate milestones.
+Original Phases 30–31 are consolidated into final Phase 29. Implementation and live demo verification are complete; final and earlier learning reviews remain separate and pending.
+
+## Live release evidence — 3 November 2026
+
+Automated hosted checks verified health/database-up, nested Angular routes, public Swagger, protected 401 responses, disabled lab routes, missing assets and immutable fingerprinted asset caching. Real registration/login/account/refresh/logout requests verified Secure, HttpOnly, SameSite=Lax, host-only cookies at /api/auth and revoked access after logout. Disallowed origins return safe 403 responses.
+
+A real Chromium learner journey passed login → reserve → reload restoration → history → cancel → rebook → logout. Details layouts fit measured 1280/1024/768/390/320px viewports. One intentionally synthetic learner retains one ACTIVE and one CANCELLED booking in the demo. No passwords or tokens are published.
+
+The project owner privately created the administrator and verified workshop creation, attendee history, registration close/reopen and USER disable/enable in the hosted interface. The agent independently confirmed the final open workshop, enabled synthetic USER, preserved booking history and matching one reserved/four available seats. After the owner's redeployment/reload, database comparisons confirmed unchanged account/workshop/booking/idempotency rows and retained session IDs; health remained good. These manual administrator checks are identified as user verification, not automated administrator-browser coverage.
+
+![Hosted booking history](assets/screenshots/bookings-live.png)
+
+The 100-user correctness experiment remains local. No load test ran against free hosting. The bounded spoofing check is not a full proxy-topology audit. Actual OS reduced motion and 200% zoom remain manual limitations. Free-tier sleep and resource limits still apply. No backup/restore completion, performance measurement or production availability guarantee is claimed.
