@@ -107,12 +107,24 @@ describe('Private production administrator command', () => {
     expect(fixture.database.initialize).not.toHaveBeenCalled();
     expect(fixture.question).not.toHaveBeenCalled();
   });
-  it('cancels before connection and credentials', async () => {
-    fixture.question.mockResolvedValue('no');
-    await run();
-    expect(fixture.database.initialize).not.toHaveBeenCalled();
-    expect(fixture.prompt).not.toHaveBeenCalled();
-  });
+  it.each([' CREATE ADMIN ', 'CREATE\u00a0ADMIN', 'CREATE   ADMIN'])(
+    'accepts pasted whitespace in explicit production confirmation: %j',
+    async (answer) => {
+      fixture.question.mockResolvedValue(answer);
+      await run();
+      expect(fixture.seed).toHaveBeenCalledOnce();
+      expect(process.exitCode).toBe(0);
+    },
+  );
+  it.each(['', 'no', 'create admin', 'CREATE ADMIN now'])(
+    'cancels before connection and credentials for %j',
+    async (answer) => {
+      fixture.question.mockResolvedValue(answer);
+      await run();
+      expect(fixture.database.initialize).not.toHaveBeenCalled();
+      expect(fixture.prompt).not.toHaveBeenCalled();
+    },
+  );
   it('requires migrated database before prompting for credentials', async () => {
     fixture.database.showMigrations.mockResolvedValue(true);
     await run();

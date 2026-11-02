@@ -25,9 +25,13 @@ try {
   });
   try {
     if (
-      (await confirmation.question(
-        'This creates an administrator in the configured production database. Type CREATE ADMIN to continue: ',
-      )) !== 'CREATE ADMIN'
+      (
+        await confirmation.question(
+          'This creates an administrator in the configured production database. Type CREATE ADMIN to continue: ',
+        )
+      )
+        .trim()
+        .replace(/\s+/gu, ' ') !== 'CREATE ADMIN'
     )
       throw new AdminSeedError(
         'Administrator bootstrap cancelled. No account was created.',
