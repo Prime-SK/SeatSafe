@@ -330,7 +330,14 @@ describe('Workshop persistence (real PostgreSQL)', () => {
     try {
       await execFileAsync(process.execPath, ['dist/database/seed.js'], {
         cwd: fileURLToPath(new URL('../', import.meta.url)),
-        env: { ...process.env, NODE_ENV: 'production', DB_PORT: '1' },
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          // Model a valid production TLS setting even when CI's local DB disables TLS.
+          // Port 1 still proves that the development-only guard runs before connecting.
+          DB_SSL: 'true',
+          DB_PORT: '1',
+        },
         windowsHide: true,
       });
       throw new Error('Expected the development-only seed to fail');
