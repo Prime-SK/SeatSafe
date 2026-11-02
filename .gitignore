@@ -5,6 +5,8 @@ coverage/
 .angular/
 .cache/
 *.tsbuildinfo
+playwright-report/
+test-results/
 
 # Local configuration and secrets
 .env
