@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: seatsafe
+    runtime: node
+    plan: free
+    autoDeployTrigger: off
+    buildCommand: bash scripts/render-build.sh
+    startCommand: node api/dist/main.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: DB_SSL
+        value: "true"
+      - key: RELIABILITY_LAB_ENABLED
+        value: "false"
+      - key: TRUST_PROXY_HOPS
+        value: "3"
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_ALLOWED_ORIGINS
+        sync: false
+      - key: PRIMENG_LICENSE
+        sync: false

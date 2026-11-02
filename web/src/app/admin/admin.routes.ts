@@ -4,6 +4,12 @@ import { installAdminTheme } from './admin-theme';
 installAdminTheme();
 export const adminRoutes: Routes = [
   {
+    path: 'workshops/:id/bookings',
+    canActivate: [adminGuard],
+    loadComponent: () => import('./workshop-bookings').then((m) => m.WorkshopBookings),
+    title: 'Workshop bookings | SeatSafe',
+  },
+  {
     path: 'reliability',
     canActivate: [adminGuard],
     loadComponent: () => import('./reliability-lab').then((m) => m.ReliabilityLab),

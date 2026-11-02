@@ -33,7 +33,7 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testIgnore: '**/mobile.pw.ts',
+      testIgnore: ['**/mobile.pw.ts', '**/release.pw.ts'],
       use: { viewport: { width: 1280, height: 900 } },
     },
     {

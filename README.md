@@ -1,113 +1,120 @@
 # SeatSafe
 
-A workshop reservation project built step by step with Angular, NestJS, and PostgreSQL.
+A workshop booking application built to explain reliable reservations, recoverable browser sessions and administrator workflows through working features.
 
-Phase 28's repeatable integration/browser checks are implemented: [guide](docs/phases/phase-28-integration-browser-checks.md), [saved plan](docs/phases/phase-28-plan.md), [acceptance matrix](docs/phases/phase-28-acceptance-matrix.md) and [20-answer checkpoint](docs/phases/phase-28-checkpoint.md). Chromium drives real Angular/Nest/PostgreSQL workflows through a dedicated development proxy. Eight desktop/two 390px journeys cover lifecycle/restart, lost-response recovery, tabs/expiry/logout, final-seat contention and administration/lab behavior. Fresh owned schemas, unchanged guards/throttling and preservation checks protect development data.
+**Release status:** the Phase 29 release package is implemented locally. Render/Neon provisioning, hosted acceptance checks and live links are pending. This is not yet a verified live release.
 
-Newly observed: **1,019 passing tests** (245 backend unit, 268 HTTP, 241 PostgreSQL, 255 frontend, 10 browser); production initial bundle **445.94kB**, unchanged budgets. Build/types/lint/format passed, as did the separate 47-case race rerun. Production/occupied-port refusal and ordinary interruption cleanup were verified. Every browser fixture confirmed development/private preservation and owned removal. Added only pinned Playwright development dependencies; no migration or product feature change. Three phases remain (29–31); Phase 29 is unstarted. Phase 27's 1,005 results remain historical. Earlier reviews, actual zoom/OS reduced-motion checks and Phase 24's historical preservation limitation remain pending. Existing dependency audit findings are documented in the guide.
+## Features
 
-The [Phase 15 redesign guide](docs/phases/phase-15-ui-ux-redesign.md) explains the shared PrimeNG Aura/green UI. Actual 200% zoom and OS reduced-motion verification remain manual checks.
+- Workshop browsing with Asia/Colombo schedules.
+- Registration, login, cross-tab session restoration and logout.
+- One-seat reservations, reload-safe request keys, booking history and repeat-safe cancellation.
+- Administrator workshop management, read-only attendee history, account search and USER disabling with session revocation.
+- Development-only reliability lab using synthetic fixtures in disposable schemas. Disabled in production.
+- Public Swagger; protected operations retain authentication and current database role checks.
 
-Start with the [documentation index](docs/README.md), [implementation plan](docs/implementation-plan.md), and [Phase 28 integration/browser guide](docs/phases/phase-28-integration-browser-checks.md). The [Phase 19 Angular administration guide](docs/phases/phase-19-workshop-administration-ui.md) explains the current management UI; its API prerequisite is [Phase 18](docs/phases/phase-18-workshop-administration.md). Browser sign-in restoration, guarded Account reads and coordinated refresh/logout are explained in [Phase 16](docs/phases/phase-16-browser-sessions.md). Its Angular prerequisite is [Phase 15 login](docs/phases/phase-15-angular-login.md); backend prerequisites are [Phase 11 login](docs/phases/phase-11-jwt-login.md) and [Phase 10 registration](docs/phases/phase-10-registration.md). Configuration and connection are explained in [Phase 5](docs/phases/phase-05-configuration.md) and [Phase 6](docs/phases/phase-06-postgresql.md); table creation and seeding are explained in [Phase 7](docs/phases/phase-07-workshop-data.md), and repository reads in [Phase 8](docs/phases/phase-08-workshop-reads.md).
+![Administrator history with synthetic fixtures](assets/screenshots/attendees-desktop.png)
 
-## Run SeatSafe locally
+<details><summary>Mobile attendee history</summary>
 
-For automated browser verification, activate the runtime, then run `npm run test:browser` from api. It builds Nest and manages its own Angular/API fixtures on ports 4201/3199; both must be free. Install matching Chromium once with `npx playwright install chromium` after installing API dependencies. Use `npm run test:browser:headed` to watch or `npx playwright show-report` for ignored local results. Normal development servers are not needed. See the Phase 28 guide before running; fixtures require local seatsafe_dev and reject production mode. Reports contain no traces/video or saved authentication state.
+![Mobile attendee history](assets/screenshots/attendees-mobile.png)
 
-For the optional administrator reliability lab, run `npm run start:lab` from api and `npm start -- --proxy-config src/proxy.lab.conf.json` from web after activating the runtime. The launcher enables the flag only for its child API process and binds to 127.0.0.1. It requires development mode and loopback seatsafe_dev; the flag otherwise defaults false. See the Phase 27 guide for setup, nine-worker/ten-connection bounds, owned cleanup and recovery. Reports retain only the latest ten terminal results in memory and disappear on restart; abrupt termination can leave an owned schema requiring deliberate inspection. Public booking behavior is unchanged.
+</details>
 
-PostgreSQL must be running, and the backend needs valid database settings in ignored `api/.env`. The dedicated `seatsafe_dev` database and `seatsafe_app` login are already provisioned on this computer. For first-time setup elsewhere, follow the Phase 6 guide and run `scripts/setup-database.ps1` in PowerShell 7; enter the administrator password only in its local prompt. Do not rerun provisioning for ordinary development or overwrite the generated `.env`.
+## Architecture and correctness
 
-Open two PowerShell terminals. Run these commands in the first:
-
-```powershell
-Set-Location 'D:\Projects\SeatSafe'
-. .\scripts\use-node.ps1
-Set-Location api
-npm run start:dev
+```mermaid
+flowchart LR
+  Browser[Angular and PrimeNG] -->|same-origin API| Nest[NestJS and Express]
+  Nest -->|verified TLS in production| DB[(PostgreSQL 18)]
+  Nest --> Static[Compiled Angular assets]
+  Nest --> Swagger[Public Swagger]
 ```
 
-In the second:
+Angular uses standalone components, reactive forms, HttpClient/RxJS and signals. PrimeNG **22.1.2**, light Aura and green styling provide consistent controls. Nest uses TypeORM with **six explicit migrations**, synchronization disabled.
+
+Reservation transactions lock user then workshop, recheck eligibility, insert a booking and increment the counter together. Partial uniqueness prevents two ACTIVE bookings per account/workshop. Account-scoped request keys save committed success and business-error snapshots. Cancellation releases a seat once and retains history.
+
+Passwords use Argon2id. Fifteen-minute HS256 tokens remain in private tab memory; seven-day sessions and hashed opaque refresh credentials live in PostgreSQL. Refresh cookies are HttpOnly, SameSite=Lax, host-only and Secure in production. Strict reuse detection revokes a session when a consumed refresh credential is replayed. Web Locks serialize cookie changes across tabs; BroadcastChannel carries credential-free lifecycle notices. Backend guards read current account/session/role state. Enabling an account requires fresh login and never restores revoked credentials.
+
+## Local setup
+
+Use **Node 24.22.1**, **npm 12.2.0** and PostgreSQL 18. On Windows the existing helper selects an installed compatible runtime:
 
 ```powershell
-Set-Location 'D:\Projects\SeatSafe'
 . .\scripts\use-node.ps1
-Set-Location web
-npm start
+npm ci --prefix api
+npm ci --prefix web
+Copy-Item api/.env.example api/.env
 ```
 
-Open the [workshop catalogue](http://localhost:4200/workshops); the root redirects there. Follow a workshop title to its details, use Back to workshops, or refresh a detail URL directly. `/workshops/unknown` displays Workshop not found; unmatched frontend URLs display a page-not-found screen. The backend starter lives at [localhost:3000/api](http://localhost:3000/api).
+Do not replace an existing environment file. Fill ignored API settings privately with your PostgreSQL connection and a random JWT secret of at least 32 bytes. Configure PrimeNG privately in ignored `web/public/primeui-license.local.json`, a JSON object with a `license` property. Never commit these values.
 
-Angular's development server forwards `/api/**` to Nest at port 3000 without rewriting the path. Browser code uses relative URLs. If Nest uses another port, update `web/src/proxy.conf.json` and restart Angular. Production serving remains later work.
+```powershell
+npm run db:migration:run --prefix api
+npm run db:seed --prefix api
+npm run start:dev --prefix api
+# In another runtime-activated terminal:
+npm start --prefix web
+```
 
-The workshop API supports:
+Frontend: `http://localhost:4200`. Swagger: `http://localhost:3000/swagger`. Health: `/api/health`. The Angular proxy keeps API requests same-origin. Registration creates USER accounts without signing in. Run `npm run db:seed:admin --prefix api` interactively for a private local administrator; passwords are hidden and reruns never promote/reset an existing USER.
 
-- [List workshops](http://localhost:3000/api/workshops).
-- [View a workshop](http://localhost:3000/api/workshops/workshop-1).
-- [Try a missing workshop](http://localhost:3000/api/workshops/unknown), which returns HTTP 404.
+## Verification
 
-[Database health](http://localhost:3000/api/health) returns HTTP 200 with `{"status":"ok","database":"up"}` when its query succeeds. A later database failure produces standard HTTP 503 with `Database unavailable`. If the initial connection fails after three attempts, the backend exits before listening.
+```powershell
+npm run build --prefix api
+# From api/: npx tsc --noEmit; npm run lint
+npm test --prefix api
+npm run test:e2e --prefix api
+npm run test:db --prefix api
+npm run test:race --prefix api
+npm test --prefix web -- --watch=false
+npm run build --prefix web
+# Once from api/: npx playwright install chromium
+npm run test:browser --prefix api
+npm run test:release --prefix api
+```
 
-Open [Swagger UI](http://localhost:3000/swagger) to see all current endpoints and test them with **Try it out → Execute**. For workshop detail, enter `workshop-1` or `unknown` in the `id` field. The machine-readable API document is at [swagger-json](http://localhost:3000/swagger-json). Use your configured API port if different from 3000. Swagger is served by the backend; Angular does not need to run for it.
+Suites use owned disposable schemas, compare development/private fingerprints and fail on cleanup/preservation problems. Browser journeys use real APIs with interception only for deliberate transport faults. No saved authentication state, traces, video or network-payload attachments.
 
-Stop each server with Ctrl+C. The backend validates local settings through ConfigModule; process environment settings override matching `.env` keys. PORT defaults to 3000, but database name, login, password and JWT_SECRET are required for application startup. The signing secret needs at least 32 UTF-8 bytes; use a securely generated random value. It is configured locally without displaying it. `.env.example` contains blank password/signing placeholders and cannot run as-is. Follow the Phase 11 guide for a new setup; preserve the existing private `.env`. Migration commands require database settings independently of JWT.
+New Phase 29 observations: **265 backend unit, 279 mocked HTTP, 241 PostgreSQL, 264 Angular and 12 desktop/mobile browser tests passed**. The final rebuilt compiled-server browser check also passed: **1,062 tests in total**. The release initial bundle is **447.47kB**, under the unchanged 500kB warning budget. The focused race command passed **47 cases already included in PostgreSQL totals**. Phase 28's 1,019 total is historical.
 
-The runtime helper selects compatible Node 24 and project-local npm for that terminal only. See the Phase 1 guide for setup on another computer and dependency installation.
+The **100-user HTTP reservation experiment** produced one 201, 99 WORKSHOP_FULL, zero unexpected/transport/timeout outcomes and one ACTIVE booking/reserved seat. The unchanged unsafe test-only control accepted two internal attempts for one seat while storing a counter of one. Local lab runs use **internal service attempts**, not HTTP requests. These prove specific correctness properties, not throughput or latency. Never load-test the free hosted service.
 
-From `api/`, after runtime activation, use `npm run db:migration:show` to inspect status and `npm run db:migration:run` to apply pending migrations. Each builds first and uses the compiled DataSource. The workshop, users, auth_sessions, auth_refresh_tokens, bookings and booking_idempotency_records migrations are already applied on this computer. Automatic schema synchronization and automatic startup migration execution are disabled. `npm run db:migration:revert` now drops the latest booking_idempotency_records table and its retry history; reversal is demonstrated only inside isolated database tests.
+## Release and deployment
 
-Run `npm run db:seed` after migrations to insert the three development workshops. It builds first, requires development mode, and preserves existing IDs without resetting their data. It has already inserted all three records here; a repeat reports `0 inserted, 3 skipped`. No provisioning or seed runs automatically at API startup.
+```powershell
+npm run build:release --prefix api
+npm run start:release --prefix api
+```
 
-To deliberately create your initial development administrator, run `npm run db:seed:admin` from api in an interactive terminal. Enter name/email and a hidden password with confirmation; no password arguments or new credential file are accepted. It requires applied migrations, reuses registration validation/Argon2id and creates an enabled ADMIN. An existing enabled ADMIN is skipped unchanged; USER or disabled accounts cause a safe conflict without updates. No actual development administrator was created during Phase 17. See the guide before running it.
+The release build compiles both apps, copies Angular to `api/dist/client` and generates only the ignored licence artifact from private configuration. Production fails if the frontend entry is absent. Nested HTML navigation supports reloads; API/Swagger routes remain backend routes; missing assets return 404. Fingerprinted JS/CSS is cached immutably; HTML/licence configuration remains refreshable. The 500kB initial warning budget is unchanged.
 
-`GET /api/admin/access` authenticates through Bearer and the current database session, then requires the current ADMIN role. It returns exactly `{ "authorized": true }`; authenticated USER receives safe 403 FORBIDDEN. Authentication failures remain 401, database failures 503, and handled responses use no-store. Swagger documents the endpoint. Administrator UI is available; workshop editing is described below. Historical Phase 17 checks passed 121 unit, 129 HTTP, 98 PostgreSQL and 94 frontend tests (442 total); backend build, strict types, lint and formatting passed. Development rows/private configuration were preserved and disposable schemas removed.
+[`render.yaml`](render.yaml) defines one free manually deployed service: Node 24.22.1, pinned npm build, provider PORT, bind 0.0.0.0, health /api/health. Use a separate Neon PostgreSQL 18 database and direct endpoint with `DB_SSL=true`, certificate verification and a five-connection pool. Supply private database values, strong JWT secret, exact hosted HTTPS origins and PRIMENG_LICENSE through provider configuration. Lab execution stays disabled. The proxy hop setting requires actual forwarding-chain and spoofing verification before hosted acceptance; unrestricted trust is never enabled.
 
-`POST /api/admin/workshops` now creates a workshop (201), and `PATCH /api/admin/workshops/:id` edits supplied fields (200). Both require current ADMIN permission and return the existing seven-field workshop representation. Requests accept title, capacity, startsAt and registrationOpen only; creation defaults registration to open, while PATCH preserves omitted values. Updates lock the current workshop, protect reserved capacity and enforce future rescheduling/opening. Public reads show committed changes. New Phase 18 checks passed 137 unit, 170 HTTP, 111 PostgreSQL and 94 frontend tests (512 total), plus backend build, strict types, lint and formatting. Isolated Swagger demonstrated create/edit/close/reopen and USER denial; development/private fingerprints matched and disposable schemas were removed. No development administrator was created. The Phase 19 administrator UI consumes these endpoints.
+Privately copy `api/.env.production.example` to ignored `api/.env.production.local`, enter hosted database settings, then run locally:
 
-`POST /api/workshops/:id/bookings` requires one valid Idempotency-Key, accepts no body or `{}` and reserves one seat for the authenticated USER or ADMIN. Success is 201 with exactly id, workshopId, status, createdAt and cancelledAt. Duplicate active bookings and closed/started/full workshops produce safe 409 codes. `GET /api/admin/workshops/:id/bookings?page=1&limit=25` requires ADMIN and returns ordered history with current attendee summaries (limit at most 100). Both use no-store. The fifth migration was applied after checks; previous migration history, development rows and private configuration were preserved, and the new booking table is empty. No counter reset or backfill occurred. New results are 171 unit, 180 HTTP, 163 PostgreSQL and 137 frontend tests (651 total).
+```powershell
+npm run db:migration:show:production --prefix api
+npm run db:migration:run:production --prefix api
+npm run db:seed:admin:production --prefix api
+```
 
-Phase 22 adds the sixth migration and account-scoped response storage. Same-key/same-request retries return their original 201/404/business-409; another workshop with that key returns IDEMPOTENCY_KEY_CONFLICT. A deliberate attempt after conditions change requires a new key. Current authentication is checked on replay. No automatic retries or retention cleanup are added. Newly observed totals are 188 unit, 188 HTTP, 185 PostgreSQL and 137 frontend (698); earlier phase counts remain historical.
+Database commands require no JWT/origin settings. Migrations never run during build/start. Bootstrap requires an interactive terminal, explicit production confirmation and hidden password confirmation; it creates no session. These commands rebuild Nest output: rebuild the release before another local compiled frontend start.
 
-Phase 23 adds Bearer-authenticated `GET /api/bookings/me?page=1&limit=25` and `POST /api/bookings/:id/cancel`. History includes ACTIVE/CANCELLED rows with current workshop details; cancellation requires no request key and releases one seat once, including after start/closure. Foreign-owned and unknown booking UUIDs both return 404. Old creation keys still return their original snapshots; use history for current status and a new key to rebook. Newly observed totals are 206 unit, 220 HTTP, 211 PostgreSQL and 137 frontend (774); previous counts are historical.
+Create future demo workshops through the admin UI. Verify register/login/reload/reserve/history/cancel/rebook/logout, administrator features, origin/cookie/proxy behavior and restart persistence before publishing live links. Provider sign-in/private entry remains a user step.
 
-Backend verification: `npm run build`, `npx tsc --noEmit`, `npm run lint`, `npx prettier --check src test vitest.config.database.ts`, `npm test`, `npm run test:e2e`, and `npm run test:db`. Unit/HTTP tests use controlled providers without private credentials. The explicit database suites require seatsafe_dev and use disposable random schemas with public signing fixtures. The newly observed 211 PostgreSQL cases retain earlier coverage and verify reservation/idempotency/cancellation, ownership, locks, rollback, migration agreement and HTTP concurrency. No development tables are truncated or reverted.
+Render's free service sleeps after inactivity, has resource/build/outbound limits and no shell/one-off jobs. Local disk is ephemeral; PostgreSQL stores persistent state. See [free service limits](https://render.com/docs/free) and [web service requirements](https://render.com/docs/web-services). This is a hobby/interview demo.
 
-Workshop routes return exactly seven fields: id, title, capacity, reservedSeats, registrationOpen, availableSeats and startsAt (ISO UTC). Audit timestamps remain private. Angular formats dates in Asia/Colombo with a visible Sri Lanka time label. Stored dates and workshop rows are unchanged; existing availability remains 20/10/12.
+For recovery, check health and safe provider/application logs without sharing credentials or payloads. Export PostgreSQL privately with `pg_dump` using protected connection settings; test restoration into a separate database. Roll back application code to a verified compatible deployment while retaining data. Never automatically reverse hosted migrations or reset rows.
 
-Phase 10 adds `POST /api/auth/register` and Angular `/register`. The typed form checks confirmation locally. Nest validates/normalizes name and email, preserves passwords, hashes with Argon2id, and inserts an enabled USER protected by the database email uniqueness constraint. Success returns only id, displayName, email and role. It does not sign in. Registration and login each have an independent five-attempt/minute/IP limit. Swagger documents registration's safe 400/409/429/500/503 errors.
+## CI and limitations
 
-Phase 11 adds `POST /api/auth/login` through Swagger: email normalization, exact Argon2id password verification and a locked account recheck. Success creates an independent seven-day session and returns a signed 15-minute JWT plus a safe account summary, with Cache-Control: no-store. Phase 13 adds its HttpOnly refresh cookie. Unknown, incorrect and disabled credentials share a safe 401. Token/session identifiers link the JWT to its row.
+GitHub Actions builds, checks types/lint/formatting and runs unit/HTTP/PostgreSQL/Chromium suites using disposable PostgreSQL 18 and public test credentials. Configure private repository secret `PRIMENG_LICENSE`; cloud credentials are not used in CI. The fixture writer refuses non-CI use/existing private files. Failure artifacts are restricted to safe browser screenshots. Remote CI verification remains pending.
 
-Phase 12 adds protected `GET /api/auth/me`. Exactly one Bearer header supplies a verified HS256 token; a joined PostgreSQL query checks the current account and matching session. Disabled accounts and missing/revoked/expired sessions receive uniform 401 UNAUTHORIZED with WWW-Authenticate: Bearer. Database query failures receive safe 503 DATABASE_UNAVAILABLE. Success returns exactly id, displayName, email and role; all handled responses use no-store and perform no writes. Use Swagger's Authorize control with only the login accessToken, then execute /me. Reload clears authorization. Workshop, health, registration and login routes remain public; refresh uses its HttpOnly cookie, while logout optionally uses that cookie. Angular login is available at /login; browser session restoration is implemented, and Phase 17 adds administrator role authorization. Workshop management is available through the administrator routes.
+Runtime audit: **zero high/critical**, with three moderate backend findings through TypeORM's glob/minimatch tooling path. Entity/migration paths are fixed application configuration; clients supply no glob patterns. No forced fix or TypeORM major upgrade was used. Frontend audit reported zero findings. Review advisories again for later releases.
 
-PrimeNG 22 supplies Aura components with a green accent. Use PrimeNG components or directives wherever applicable to visual controls; keep native HTML for semantics and CSS for layout. Registration uses PrimeNG labels above full-width inputs, error styling, messages and buttons. Its free Community option requires a key, as the [installation](https://primeng.dev/installation) and [configuration](https://primeng.dev/configuration) pages explain. Your local key is configured through the ignored JSON asset, and you confirmed the notice is gone. For setup elsewhere, follow the [guide's local JSON setup](docs/phases/phase-10-registration.md#free-community-licence-configuration). Never put the key in source, chat or Git.
+In-memory throttling and lab reports target one API instance. Lost refresh responses can trigger strict reuse revocation; the browser avoids automatic ambiguous retries. Actual 200% zoom and OS reduced-motion verification remain pending, distinct from browser emulation. Earlier learning reviews and Phase 24's historical preservation gap remain documented privately.
 
-Frontend checks from web: `npm run build`, `npm test -- --watch=false`, and `npx prettier --check src/app src/main.ts src/styles.css`. The production initial bundle remains below the existing 500 kB warning budget through lazy page routes. PrimeNG handles component appearance; CSS retains responsive page layout.
-
-The Phase 10 follow-up passed these checks: 32 frontend tests, formatting, and a production initial bundle of 469.09 kB. Registration, catalogue and details were visually verified at actual widths 1280px, 390px and 320px without horizontal overflow. Registration state checks used a mock with no database access. Backend test counts remain from the original implementation; no development data or Git operations were changed.
-
-Phase 11 verification passed: backend build/lint/formatting and 185 tests (49 unit, 57 mocked HTTP, 47 PostgreSQL, 32 frontend). Isolated Swagger registration/login returned 201/200; wrong-password feedback returned 401. The session migration was explicitly applied after checks; full development user/workshop snapshots were unchanged. Zero development accounts/sessions and availability 20/10/12 remain. The local secret was preserved or appended privately; the licence configuration was unchanged. Frontend layout evidence remains from Phase 10.
-
-Phase 12 verification newly passed backend build, strict type checking, lint, formatting and 227 tests (51 unit, 88 HTTP, 56 PostgreSQL, 32 frontend). Isolated Swagger verified unauthorized 401, login 200, authorized /me 200 and authorization cleared after reload. The demo server/schema were removed; complete development data/migration snapshots and private configuration fingerprints were unchanged. No dependencies or development migrations were needed. Phase 11's 185 tests and Phase 10's visual results above remain historical.
-
-Read [the Phase 15 guide](docs/phases/phase-15-angular-login.md), [checkpoint with 20 questions and answers](docs/phases/phase-15-checkpoint.md), and [saved plan](docs/phases/phase-15-plan.md). Implementation stops for learning review; Phase 10–14 reviews remain pending too. Phase 16 browser session handling has not started. Bookings remain later phases. Git stays yours to manage.
-
-Phase 13 now issues refresh credentials on login: 32 random bytes, SHA-256 hash-only PostgreSQL storage and a seatsafe_refresh cookie (HttpOnly, SameSite=Lax, Path=/api/auth, host-only, Secure in production). Session and credential inserts commit together before cookie issuance. Login JSON remains unchanged; failed requests do not change existing cookies. Phase 14 now accepts this cookie for refresh/logout; /me still requires Bearer.
-
-Login now requires an allowed Origin, falling back to Referer only when Origin is absent. AUTH_ALLOWED_ORIGINS defaults in development to http://localhost:4200 and http://localhost at the configured API port; production requires explicit HTTPS origins. Use the same hostname consistently. Command-line login must include an allowed Origin header. Rejection returns safe 403 ORIGIN_NOT_ALLOWED with no-store. This setting is application-only; migration commands remain independent. Existing private .env needs no change for local defaults.
-
-Phase 13 newly passed backend build, strict types, lint, formatting and 265 tests (66 unit, 103 HTTP, 64 PostgreSQL, 32 frontend). Isolated Swagger login stored a browser cookie matching the database hash; Bearer /me returned 200 and cookie-only /me returned 401. The temporary server/schema were removed. The fourth additive migration applied with complete existing development rows unchanged, zero refresh credentials and no pending migrations. Private API/PrimeNG configuration was unchanged. No dependencies or Git operations were needed; Phase 12 results above remain historical.
-
-Phase 14 adds POST /api/auth/refresh and /api/auth/logout. Refresh consumes the current hash, inserts a replacement and signs an access token in one transaction; response/cookie issuance follows commit. User → session → credential locks serialize lifecycle operations. A known consumed credential revokes its session before 401; strict simultaneous reuse also invalidates the winner's successor. Session expiry stays fixed at seven days, and the current database profile is returned.
-
-Logout uses the refresh cookie without requiring a Bearer token, returns idempotent 204 and clears the matching cookie after commit. It revokes only that linked session, including via a consumed credential. Missing/invalid/unknown logout credentials still produce 204. Both endpoints reuse origin restrictions and have independent five-attempt/minute/IP limits. All handled outcomes use no-store; refresh 401 clears the cookie, while 403/429/500/503 retain it. Existing /me rejects revoked sessions on subsequent requests.
-
-Phase 14 newly passed backend build, strict types, lint, formatting and 317 tests (83 unit, 122 HTTP, 80 PostgreSQL, 32 frontend). Isolated Swagger demonstrated login 200 → refresh 200 → /me 200 → logout 204 → /me 401. The demo server/schema were removed and full development data/migration history and private configuration were unchanged. No dependency, migration, Angular feature or Git operation was needed. Previous Phase 13 results above remain historical; stop for Phase 14 learning review.
-
-Phase 15 adds Angular /login with PrimeNG fields/messages/buttons, typed reactive validation and safe errors. Email normalizes; passwords remain exact and login accepts 1–128 Unicode characters. Pending controls prevent duplicate requests, navigation cancels the subscription, and success/destruction clears the password. Registration links to sign-in while retaining its separate account-creation behavior.
-
-Successful login navigates to /workshops and updates the header with the account name. Access tokens remain private in a root in-memory signal; no persistent browser storage or token display is added. Local expiry is conservatively based on request start plus expiresIn, and reload begins anonymous locally. Automatic refresh, refresh-on-reload, Bearer interception, logout UI, route guards and browser coordination remain Phase 16. The backend still enforces all actual access decisions.
-
-Phase 15 newly passed 55 frontend, 83 backend unit and 122 HTTP tests (260 rerun), frontend production build and formatting. Its 487.23 kB initial bundle stays below the unchanged 500 kB warning budget. Phase 14's 80 PostgreSQL cases remain historical and were not rerun. Actual 1280px/390px/320px layouts passed overflow checks, including long account names, error wrapping, pending controls and keyboard focus. Real login through an isolated API/proxy reached the catalogue; Back showed signed-in status and reload reset local state. Temporary resources were removed with full development data and private API/PrimeNG configuration unchanged.
-
-The roadmap is implemented through Phase 15, leaving 16 phases. Browser session handling, roles/admin features, transactional bookings/idempotency/cancellation, user administration, reliability/browser checks, packaging/deployment and interview evidence remain. This is phase progress, not an effort percentage. No dependencies, backend source/API changes, migrations or Git operations were needed. Stop for Phase 15 learning review.
+Original Phases 30–31 are consolidated into final Phase 29. Local implementation, verified live deployment and the final learning review remain separate milestones.

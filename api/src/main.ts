@@ -12,7 +12,7 @@ async function bootstrap() {
     app.get(ConfigService).get<boolean>('RELIABILITY_LAB_ENABLED') === true;
   if (labEnabled)
     await app.listen(config.get('PORT', { infer: true }), '127.0.0.1');
-  else await app.listen(config.get('PORT', { infer: true }));
+  else await app.listen(config.get('PORT', { infer: true }), '0.0.0.0');
   if (labEnabled && process.send) {
     let closing: Promise<void> | undefined;
     const close = () => {

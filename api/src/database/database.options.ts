@@ -18,9 +18,9 @@ export function createDatabaseOptions(
     database: environment.DB_NAME,
     username: environment.DB_USER,
     password: environment.DB_PASSWORD,
-    ssl: false,
+    ssl: environment.DB_SSL ? { rejectUnauthorized: true } : false,
     connectTimeoutMS: 5000,
-    extra: { query_timeout: 5000 },
+    extra: { query_timeout: 5000, connectionTimeoutMillis: 5000, max: 5 },
     entities: [
       WorkshopEntity,
       UserEntity,

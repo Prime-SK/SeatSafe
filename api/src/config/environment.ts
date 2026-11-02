@@ -8,6 +8,7 @@ export interface Environment {
   DB_NAME: string;
   DB_USER: string;
   DB_PASSWORD: string;
+  DB_SSL: boolean;
 }
 
 export function validateEnvironment(
@@ -43,6 +44,18 @@ export function validateEnvironment(
   if (!['development', 'test', 'production'].includes(nodeEnvironment)) {
     errors.push('NODE_ENV must be development, test, or production');
   }
+  const ssl =
+    input.DB_SSL === undefined
+      ? nodeEnvironment === 'production'
+      : input.DB_SSL === 'true';
+  if (
+    input.DB_SSL !== undefined &&
+    input.DB_SSL !== 'true' &&
+    input.DB_SSL !== 'false'
+  )
+    errors.push('DB_SSL must be true or false');
+  if (nodeEnvironment === 'production' && !ssl)
+    errors.push('DB_SSL must be true in production');
 
   const environment: Environment = {
     NODE_ENV: nodeEnvironment as NodeEnvironment,
@@ -52,6 +65,7 @@ export function validateEnvironment(
     DB_NAME: text('DB_NAME'),
     DB_USER: text('DB_USER'),
     DB_PASSWORD: text('DB_PASSWORD', undefined, true),
+    DB_SSL: ssl,
   };
 
   if (errors.length > 0) {

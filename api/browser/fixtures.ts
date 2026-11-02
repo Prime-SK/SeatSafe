@@ -3,11 +3,16 @@ import type { Page } from '@playwright/test';
 import { browserFixture, password, learner, workshopId } from './harness.js';
 import type { BrowserFixture } from './harness.js';
 
-export const test = base.extend<{ api: BrowserFixture; labEnabled: boolean }>({
+export const test = base.extend<{
+  api: BrowserFixture;
+  labEnabled: boolean;
+  releaseMode: boolean;
+}>({
   labEnabled: [false, { option: true }],
+  releaseMode: [false, { option: true }],
   api: [
-    async ({ labEnabled }, use) => {
-      const fixture = await browserFixture(labEnabled);
+    async ({ labEnabled, releaseMode }, use) => {
+      const fixture = await browserFixture(labEnabled, releaseMode);
       try {
         await use(fixture);
       } finally {

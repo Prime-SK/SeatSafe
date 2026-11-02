@@ -16,7 +16,7 @@ export class AdminAccess {
   private destination = '/admin/workshops';
   check(destination: string) {
     this.destination =
-      /^\/admin\/(?:reliability|users|workshops(?:\/new|\/[^/?#]+\/edit)?)(?:\?[^#]*)?$/.test(
+      /^\/admin\/(?:reliability|users|workshops(?:\/new|\/[^/?#]+\/(?:edit|bookings))?)(?:\?[^#]*)?$/.test(
         destination,
       )
         ? destination

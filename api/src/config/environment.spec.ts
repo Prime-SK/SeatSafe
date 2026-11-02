@@ -22,6 +22,7 @@ describe('Environment validation', () => {
       PORT: 3000,
       DB_HOST: 'localhost',
       DB_PORT: 5432,
+      DB_SSL: false,
     });
   });
 

@@ -20,6 +20,7 @@ import { seedAdminAccount } from '../dist/database/seed-admin-account.js';
 import { assertLocalRaceTarget } from '../test/support/booking-race.js';
 import { publicBookingRows } from '../test/support/public-booking-rows.js';
 import { assertOwnership } from './safety.js';
+import { installClient } from '../dist/release/serve-client.js';
 
 export const password = 'public browser fixture password';
 export const learner = 'learner@example.test';
@@ -37,7 +38,7 @@ async function requireFreePort(): Promise<void> {
   });
 }
 
-export async function browserFixture(labEnabled = false) {
+export async function browserFixture(labEnabled = false, releaseMode = false) {
   const options = configured.options;
   assertLocalRaceTarget(options, process.env.NODE_ENV);
   assert(options.type === 'postgres', 'Local PostgreSQL required');
@@ -133,6 +134,7 @@ export async function browserFixture(labEnabled = false) {
       .get(ConfigService)
       .set('RELIABILITY_LAB_ENABLED', validated.RELIABILITY_LAB_ENABLED);
     configureApp(app);
+    if (releaseMode) installClient(app);
     await app.listen(3199, '127.0.0.1');
   }
   const close = () =>

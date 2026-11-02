@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.intro {
+  color: var(--muted);
+  max-width: 70ch;
+}
+section,
+p-card,
+p-message {
+  display: block;
+  margin-block: 1.5rem;
+}
+td,
+p,
+dd,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}
+th,
+td {
+  vertical-align: top;
+}
+.mobile {
+  display: none;
+}
+dd {
+  margin: 0.5rem 0 1rem;
+}
+h3 {
+  margin-top: 0;
+}
+@media (max-width: 767px) {
+  .desktop {
+    display: none;
+  }
+  .mobile {
+    display: grid;
+    gap: 1rem;
+  }
+  .mobile p-card {
+    margin: 0;
+  }
+}

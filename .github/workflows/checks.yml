@@ -1,0 +1,69 @@
+name: SeatSafe checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: seatsafe_dev
+          POSTGRES_USER: seatsafe_app
+          POSTGRES_PASSWORD: public-ci-database-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U seatsafe_app -d seatsafe_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PRIMENG_LICENSE: ${{ secrets.PRIMENG_LICENSE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            web/package-lock.json
+      - run: npm install --global npm@12.2.0
+      - run: npm ci --prefix api --include=dev
+      - run: npm ci --prefix web --include=dev
+      - run: node scripts/ci-environment.mjs
+      - name: Prepare only the disposable CI baseline
+        run: npm run db:migration:run --prefix api
+      - run: npx playwright install --with-deps chromium
+        working-directory: api
+      - run: npm run build:release --prefix api
+      - run: npx tsc --noEmit && npm run lint
+        working-directory: api
+      - run: npx prettier --check src test browser playwright.config.ts playwright.release.config.ts vitest.config.database.ts
+        working-directory: api
+      - run: npm test && npm run test:e2e && npm run test:db
+        working-directory: api
+      - run: npm test -- --watch=false
+        working-directory: web
+      - run: npx prettier --check src/app src/main.ts src/styles.css src/proxy.e2e.conf.json
+        working-directory: web
+      - run: npm run test:browser
+        working-directory: api
+      - run: npm run test:release
+        working-directory: api
+      - name: Runtime audit gate
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: api
+      - name: Frontend runtime audit gate
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: safe-browser-screenshots
+          path: api/test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 7

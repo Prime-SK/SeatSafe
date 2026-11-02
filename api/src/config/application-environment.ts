@@ -4,6 +4,10 @@ import { validateEnvironment } from './environment.js';
 // The migration CLI continues to use validateEnvironment without requiring JWT.
 export function validateApplicationEnvironment(input: Record<string, unknown>) {
   const environment = validateEnvironment(input);
+  const hops =
+    input.TRUST_PROXY_HOPS === undefined ? '0' : input.TRUST_PROXY_HOPS;
+  if (typeof hops !== 'string' || !/^[0-5]$/.test(hops))
+    throw Error('TRUST_PROXY_HOPS must be an integer from 0 to 5');
   const lab = input.RELIABILITY_LAB_ENABLED;
   if (lab !== undefined && lab !== 'true' && lab !== 'false')
     throw new Error('RELIABILITY_LAB_ENABLED must be true or false');
@@ -53,6 +57,7 @@ export function validateApplicationEnvironment(input: Record<string, unknown>) {
   return {
     ...environment,
     JWT_SECRET: input.JWT_SECRET,
+    TRUST_PROXY_HOPS: Number(hops),
     RELIABILITY_LAB_ENABLED: labEnabled,
     AUTH_ALLOWED_ORIGINS: [...new Set(origins)],
   };

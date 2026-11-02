@@ -5,9 +5,22 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { LabService } from './reliability/lab.service.js';
+import { ConfigService } from '@nestjs/config';
+import { installClient } from './release/serve-client.js';
 
 // Startup and HTTP tests use the same route and documentation configuration.
 export function configureApp(app: INestApplication): void {
+  const settings = app.get(ConfigService);
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.disable('x-powered-by');
+  expressApp.set('trust proxy', settings.get<number>('TRUST_PROXY_HOPS') ?? 0);
+  app.use((_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.setHeader('X-Frame-Options', 'DENY');
+    next();
+  });
+  if (settings.get<string>('NODE_ENV') === 'production') installClient(app);
   const labJson = json({ strict: false });
   app.use((request: Request, response: Response, next: NextFunction) => {
     if (!request.path.startsWith('/api/admin/reliability/')) return next();

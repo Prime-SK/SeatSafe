@@ -1,0 +1,135 @@
+<a pButton severity="secondary" variant="text" routerLink="/admin/workshops">← Manage workshops</a>
+<h1>Workshop bookings</h1>
+<p class="intro">
+  Reservation history with current attendee details. All dates are shown in Sri Lanka time.
+</p>
+@let current = state();
+@switch (current.kind) {
+  @case ('waiting') {
+    <p role="status">Checking administrator access…</p>
+  }
+  @case ('loading') {
+    <p role="status">Loading workshop bookings…</p>
+    <div aria-hidden="true"><p-skeleton height="4rem" /><p-skeleton height="12rem" /></div>
+  }
+  @case ('missing') {
+    <p-message severity="warn">{{ current.message }}</p-message>
+  }
+  @case ('error') {
+    <p-message severity="error">{{ current.message }}</p-message
+    ><p-button label="Retry" (onClick)="retry()" />
+  }
+  @case ('ready') {
+    <section aria-labelledby="workshop-title">
+      <h2 id="workshop-title">{{ current.workshop.title }}</h2>
+      <p>
+        <time [attr.datetime]="current.workshop.startsAt">{{
+          current.workshop.startsAt | workshopDate
+        }}</time>
+        · Sri Lanka time
+      </p>
+      <p>
+        {{ current.workshop.reservedSeats }} reserved ·
+        {{ current.workshop.availableSeats }} available / {{ current.workshop.capacity }} total
+      </p>
+      <p-button label="Refresh bookings" severity="secondary" (onClick)="retry()" />
+    </section>
+    @if (!current.data.items.length) {
+      <p-card
+        ><h2>{{ current.data.total ? 'No bookings on this page' : 'No bookings yet' }}</h2>
+        <p>
+          {{
+            current.data.total
+              ? 'Choose another page to inspect the reservation history.'
+              : 'Reservations will appear here when a seat is booked.'
+          }}
+        </p></p-card
+      >
+    } @else {
+      <p>
+        {{ current.data.total }} {{ current.data.total === 1 ? 'booking' : 'bookings' }} in this
+        workshop’s history
+      </p>
+      <div class="desktop">
+        <p-table
+          [value]="current.data.items"
+          [tableStyle]="{ 'table-layout': 'fixed', width: '100%' }"
+        >
+          <ng-template #header
+            ><tr>
+              <th scope="col">Attendee</th>
+              <th scope="col">Status</th>
+              <th scope="col">Booked</th>
+              <th scope="col">Cancelled</th>
+            </tr></ng-template
+          >
+          <ng-template #body let-booking
+            ><tr>
+              <td>
+                <strong>{{ booking.user.displayName }}</strong
+                ><br />{{ booking.user.email }}
+              </td>
+              <td>
+                <p-tag
+                  [value]="booking.status === 'ACTIVE' ? 'Active' : 'Cancelled'"
+                  [severity]="booking.status === 'ACTIVE' ? 'success' : 'secondary'"
+                />
+              </td>
+              <td>
+                <time [attr.datetime]="booking.createdAt">{{
+                  booking.createdAt | workshopDate
+                }}</time>
+              </td>
+              <td>
+                @if (booking.cancelledAt) {
+                  <time [attr.datetime]="booking.cancelledAt">{{
+                    booking.cancelledAt | workshopDate
+                  }}</time>
+                } @else {
+                  <span>—</span>
+                }
+              </td>
+            </tr></ng-template
+          >
+        </p-table>
+      </div>
+      <div class="mobile">
+        @for (booking of current.data.items; track booking.id) {
+          <p-card
+            ><h3>{{ booking.user.displayName }}</h3>
+            <p>{{ booking.user.email }}</p>
+            <p-tag
+              [value]="booking.status === 'ACTIVE' ? 'Active' : 'Cancelled'"
+              [severity]="booking.status === 'ACTIVE' ? 'success' : 'secondary'"
+            />
+            <dl>
+              <dt>Booked</dt>
+              <dd>
+                <time [attr.datetime]="booking.createdAt">{{
+                  booking.createdAt | workshopDate
+                }}</time>
+              </dd>
+              @if (booking.cancelledAt) {
+                <dt>Cancelled</dt>
+                <dd>
+                  <time [attr.datetime]="booking.cancelledAt">{{
+                    booking.cancelledAt | workshopDate
+                  }}</time>
+                </dd>
+              }
+            </dl></p-card
+          >
+        }
+      </div>
+    }
+    <p-paginator
+      [first]="(current.data.page - 1) * current.data.limit"
+      [rows]="current.data.limit"
+      [totalRecords]="current.data.total"
+      [rowsPerPageOptions]="[10, 25, 50, 100]"
+      [pageLinkSize]="3"
+      [showFirstLastIcon]="false"
+      (onPageChange)="pageChanged($event)"
+    />
+  }
+}
