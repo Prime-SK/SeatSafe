@@ -32,9 +32,11 @@ jobs:
             api/package-lock.json
             web/package-lock.json
       - run: npm install --global npm@12.2.0
+      - run: npm ci --ignore-scripts
       - run: npm ci --prefix api --include=dev
       - run: npm ci --prefix web --include=dev
       - run: node scripts/ci-environment.mjs
+      - run: npx --prefix api prettier --check package.json neon.ts scripts/neon-database-env.mjs
       - name: Prepare only the disposable CI baseline
         run: npm run db:migration:run --prefix api
       - run: npx playwright install --with-deps chromium

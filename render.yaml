@@ -2,6 +2,7 @@ services:
   - type: web
     name: seatsafe
     runtime: node
+    region: singapore
     plan: free
     autoDeployTrigger: off
     buildCommand: bash scripts/render-build.sh

@@ -2,7 +2,7 @@
 
 A workshop booking application built to explain reliable reservations, recoverable browser sessions and administrator workflows through working features.
 
-**Release status:** the Phase 29 release package is implemented locally. Render/Neon provisioning, hosted acceptance checks and live links are pending. This is not yet a verified live release.
+**Release status:** the Phase 29 release package is implemented locally. Neon PostgreSQL 18 in Singapore is connected over verified TLS, with all six migrations applied and an isolated application journey verified. Public Render deployment, hosted acceptance checks and live links are pending. This is not yet a verified live release.
 
 ## Features
 
@@ -102,6 +102,10 @@ npm run db:seed:admin:production --prefix api
 ```
 
 Database commands require no JWT/origin settings. Migrations never run during build/start. Bootstrap requires an interactive terminal, explicit production confirmation and hidden password confirmation; it creates no session. These commands rebuild Nest output: rebuild the release before another local compiled frontend start.
+
+For Neon CLI onboarding, install/login privately, then link an existing project with PostgreSQL only. This project now includes `neon.ts` and pinned root development tooling (`npm ci --ignore-scripts`). Root `npm run build` builds the full release. Neon context `.neon` and pulled `.env.local` stay ignored. After a PostgreSQL environment pull, `npm run neon:database:configure` maps `DATABASE_URL_UNPOOLED` into a **new**, ignored `api/.env.production.local` with certificate-verified TLS. It refuses to replace an existing file; never use it to overwrite local `api/.env`. Render application traffic uses the agreed bounded direct connection, while database commands use the same direct endpoint.
+
+The Neon continuation additionally passed **25 HTTP checks** against a locally started compiled application using an owned disposable schema on the real hosted database. They covered authentication, refresh/logout, administrator operations, reservation/replay/cancellation/rebooking and role denial. The fixture was removed and hosted public/local development/private snapshots matched. This is separate evidence from the 1,062 regression tests above, and does not prove a public Render deployment or production browser cookie/proxy behavior.
 
 Create future demo workshops through the admin UI. Verify register/login/reload/reserve/history/cancel/rebook/logout, administrator features, origin/cookie/proxy behavior and restart persistence before publishing live links. Provider sign-in/private entry remains a user step.
 
