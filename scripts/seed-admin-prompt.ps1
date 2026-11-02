@@ -1,5 +1,7 @@
 # Invoked by the Node seed command. Never run with password arguments or save its output.
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell 5.1 otherwise uses the console code page for its private pipe.
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 if ([Console]::IsInputRedirected -or -not [Console]::IsOutputRedirected -or $args.Count -ne 0) { exit 3 }
 $passwordPointer = [IntPtr]::Zero
 $confirmationPointer = [IntPtr]::Zero

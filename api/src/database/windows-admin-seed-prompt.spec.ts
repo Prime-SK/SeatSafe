@@ -29,7 +29,9 @@ describe('Windows secure administrator input pipe', () => {
     child.emit('close', 0);
     expect(await pending).toEqual(input);
     expect(fixture.spawn).toHaveBeenCalledWith(
-      'pwsh',
+      expect.stringMatching(
+        /WindowsPowerShell[/\\]v1\.0[/\\]powershell\.exe$/u,
+      ),
       ['-NoProfile', '-File', expect.stringContaining('seed-admin-prompt.ps1')],
       { stdio: ['inherit', 'pipe', 'inherit'], windowsHide: true },
     );
@@ -59,11 +61,26 @@ describe('Windows secure administrator input pipe', () => {
       'Unable to read administrator details. No account was created.',
     );
   });
-  it('sanitizes missing PowerShell errors', async () => {
+  it('uses the built-in shell even when PowerShell 7 is absent from PATH', async () => {
+    const pending = promptWindowsAdminAccount();
+    child.stdout.write(
+      JSON.stringify({
+        displayName: 'Admin',
+        email: 'admin@example.test',
+        password: 'public fixture password',
+      }),
+    );
+    child.emit('close', 0);
+    await pending;
+    const [executable] = fixture.spawn.mock.calls[0] as [string];
+    expect(executable).not.toBe('pwsh');
+    expect(executable).toContain('System32');
+  });
+  it('sanitizes missing Windows shell errors', async () => {
     const pending = promptWindowsAdminAccount();
     child.emit('error', new Error('private process details'));
     await expect(pending).rejects.toThrow(
-      'Use PowerShell 7 in an interactive terminal',
+      'Use an interactive terminal with Windows PowerShell available',
     );
     child.emit('close', -1);
   });

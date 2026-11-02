@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { AdminSeedError } from './seed-admin-account.js';
 
 export function promptWindowsAdminAccount(): Promise<{
@@ -8,10 +9,16 @@ export function promptWindowsAdminAccount(): Promise<{
   password: string;
 }> {
   return new Promise((resolve, reject) => {
-    // Existing PowerShell 7 handles Windows console input without Node raw-mode cleanup.
+    // Use Windows' built-in shell by absolute path; user terminals need no pwsh PATH entry.
     // Only the JSON result uses the private stdout pipe; prompts use inherited stderr.
     const child = spawn(
-      'pwsh',
+      join(
+        process.env.SystemRoot ?? 'C:\\Windows',
+        'System32',
+        'WindowsPowerShell',
+        'v1.0',
+        'powershell.exe',
+      ),
       [
         '-NoProfile',
         '-File',
@@ -36,7 +43,7 @@ export function promptWindowsAdminAccount(): Promise<{
     child.on('error', () =>
       reject(
         new AdminSeedError(
-          'Unable to open the secure prompt. Use PowerShell 7 in an interactive terminal.',
+          'Unable to open the secure Windows prompt. Use an interactive terminal with Windows PowerShell available.',
         ),
       ),
     );
